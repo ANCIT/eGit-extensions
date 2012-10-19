@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="false"
+            id="org.ancit.git.visualization.objectContribution1"
+            nameFilter="*"
+            objectClass="org.eclipse.jgit.revplot.PlotCommit">
+         <action
+               class="org.ancit.git.visualization.action.OpenGitHistoryVisualisationViewAction"
+               id="org.ancit.git.visualization.action.OpenGitHistoryVisualisationViewAction"
+               label="Open Visualization View">
+         </action>
+      </objectContribution>
+   </extension>
+
+</plugin>
