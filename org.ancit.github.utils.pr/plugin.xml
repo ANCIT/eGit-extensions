@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="false"
+            id="org.ancit.github.utils.pr.objectContribution1"
+            objectClass="org.eclipse.egit.ui.internal.repository.tree.RefNode">
+         <action
+               class="org.ancit.github.utils.pr.actions.RaisePullRequestAction"
+               id="org.ancit.github.utils.pr.actions.RaisePullRequestAction"
+               label="Create Pull Request"
+               menubarPath="additions">
+         </action>
+      </objectContribution>
+   </extension>
+
+</plugin>
