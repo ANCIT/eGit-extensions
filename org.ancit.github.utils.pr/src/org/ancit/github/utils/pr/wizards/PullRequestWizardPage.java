@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.List;
 
-import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.egit.ui.internal.repository.tree.RefNode;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.wizard.WizardPage;
+import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -15,20 +17,18 @@ import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.browser.AuthenticationEvent;
-import org.eclipse.swt.browser.AuthenticationListener;
 import org.eclipse.swt.browser.Browser;
-import org.eclipse.swt.browser.LocationEvent;
-import org.eclipse.swt.browser.LocationListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Shell;
+import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.PlatformUI;
 
 public class PullRequestWizardPage extends WizardPage {
 
@@ -36,17 +36,20 @@ public class PullRequestWizardPage extends WizardPage {
 	private String baseURL;
 	private String toBranchName;
 	private String fromBranchName;
+	private RefNode refNode;
+
 	
 	/**
 	 * Create the wizard.
 	 * @param myRepository 
 	 */
-	public PullRequestWizardPage(Repository myRepository) {
+	public PullRequestWizardPage(RefNode refNode) {
 		super("wizardPage");
 		setTitle("Pull Request Creation");
 		setDescription("Select Branch to Raise Pull Request.");
 		setMessage("You should be logged in to work on Private Repositories.", MessageDialog.INFORMATION);
-		this.myRepository = myRepository;
+		this.refNode=refNode;
+		this.myRepository = refNode.getRepository();
 	}
 	
 
@@ -70,7 +73,7 @@ public class PullRequestWizardPage extends WizardPage {
 						String branchName = refName.substring(refName.indexOf("/")+1);
 						String remoteName = refName.substring(0,refName.indexOf("/"));
 						
-						System.out.println("Branch Name "+branchName);
+						//System.out.println("Branch Name "+branchName);
 						RemoteConfig rc;
 						try {
 							rc = new RemoteConfig(config,
@@ -96,6 +99,7 @@ public class PullRequestWizardPage extends WizardPage {
 			Label label = new Label(container, SWT.NONE);
 			label.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 			label.setText("<-");
+			label.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_BACK));
 		
 			final Combo fromBranch = new Combo(container, SWT.READ_ONLY);
 			fromBranch.addSelectionListener(new SelectionAdapter() {
@@ -106,7 +110,7 @@ public class PullRequestWizardPage extends WizardPage {
 					String branchName = refName.substring(refName.indexOf("/")+1);
 					String remoteName = refName.substring(0,refName.indexOf("/"));
 					
-					System.out.println("Branch Name "+branchName);
+					//System.out.println("Branch Name "+branchName);
 					RemoteConfig rc;
 					try {
 						rc = new RemoteConfig(config,
@@ -144,6 +148,21 @@ public class PullRequestWizardPage extends WizardPage {
 				toBranch.add(name);
 				fromBranch.add(name);
 			}
+			
+			String branchSelected=refNode.getObject().getName();
+			branchSelected=branchSelected.substring(branchSelected.lastIndexOf("/")+1);
+			
+			String remote = myRepository.getConfig().getString(
+				    ConfigConstants.CONFIG_BRANCH_SECTION, branchSelected,
+				    ConfigConstants.CONFIG_KEY_REMOTE);
+			String merge = myRepository.getConfig().getString(
+				    ConfigConstants.CONFIG_BRANCH_SECTION, branchSelected,
+				    ConfigConstants.CONFIG_KEY_MERGE);
+
+			merge=merge.substring(merge.lastIndexOf("/")+1);
+			//System.out.println(remote+"/"+merge);
+			toBranch.setText(toBranch.getItem(0));
+			fromBranch.setText(remote+"/"+merge);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
