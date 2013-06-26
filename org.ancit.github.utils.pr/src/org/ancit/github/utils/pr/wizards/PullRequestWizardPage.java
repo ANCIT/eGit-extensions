@@ -37,6 +37,8 @@ public class PullRequestWizardPage extends WizardPage {
 	private String toBranchName;
 	private String fromBranchName;
 	private RefNode refNode;
+	private int FROM_BRANCH = 1;
+	private int TO_BRANCH = 2;
 
 	
 	/**
@@ -64,35 +66,6 @@ public class PullRequestWizardPage extends WizardPage {
 		container.setLayout(new GridLayout(4, false));
 		
 			final Combo toBranch = new Combo(container, SWT.READ_ONLY);
-			toBranch.addSelectionListener(new SelectionAdapter() {
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					
-						StoredConfig config = myRepository.getConfig();
-						String refName = toBranch.getText();
-						String branchName = refName.substring(refName.indexOf("/")+1);
-						String remoteName = refName.substring(0,refName.indexOf("/"));
-						
-						//System.out.println("Branch Name "+branchName);
-						RemoteConfig rc;
-						try {
-							rc = new RemoteConfig(config,
-									remoteName);
-							List<URIish> urIs = rc.getURIs();
-							String uri = urIs.get(0).toString();
-							uri = uri.replace("https://github.com/", "").replace("git@github.com:", "");
-							toBranchName = uri.substring(0, uri.lastIndexOf("/"));
-							toBranchName += ":"+branchName;
-							
-						} catch (URISyntaxException e1) {
-							e1.printStackTrace();
-						}
-						
-						
-						
-					
-				}
-			});
 			toBranch.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 			GridDataFactory.fillDefaults().grab(true, false).applyTo(toBranch);
 		
@@ -102,34 +75,6 @@ public class PullRequestWizardPage extends WizardPage {
 			label.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_BACK));
 		
 			final Combo fromBranch = new Combo(container, SWT.READ_ONLY);
-			fromBranch.addSelectionListener(new SelectionAdapter() {
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					StoredConfig config = myRepository.getConfig();
-					String refName = fromBranch.getText();
-					String branchName = refName.substring(refName.indexOf("/")+1);
-					String remoteName = refName.substring(0,refName.indexOf("/"));
-					
-					//System.out.println("Branch Name "+branchName);
-					RemoteConfig rc;
-					try {
-						rc = new RemoteConfig(config,
-								remoteName);
-						List<URIish> urIs = rc.getURIs();
-						String uri = urIs.get(0).toString();
-						
-						uri = uri.replace("https://github.com/", "").replace("git@github.com:", "").replace(".git", "");
-						fromBranchName = uri.substring(0, uri.lastIndexOf("/"));
-						fromBranchName += ":"+branchName;
-						
-						baseURL = "https://github.com/"+ uri + "/compare/";
-						
-						
-					} catch (URISyntaxException e1) {
-						e1.printStackTrace();
-					}
-				}
-			});
 			fromBranch.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 			
 			Button btnGeneratePullRequest = new Button(container, SWT.NONE);
@@ -171,6 +116,8 @@ public class PullRequestWizardPage extends WizardPage {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				if(toBranch.getText().length() > 0 && fromBranch.getText().length() > 0) {
+					getBranchConfiguration(toBranch, TO_BRANCH);
+					getBranchConfiguration(fromBranch,FROM_BRANCH);
 					browser.setUrl(createURL());
 					setMessage(null);
 				}
@@ -184,6 +131,39 @@ public class PullRequestWizardPage extends WizardPage {
 		String url = baseURL + toBranchName +"..."+fromBranchName;
 		return url;
 	}
-	
+
+
+	private void getBranchConfiguration(final Combo branch, int type) {
+		StoredConfig config = myRepository.getConfig();
+		String refName = branch.getText();
+		String branchName = refName.substring(refName.indexOf("/")+1);
+		String remoteName = refName.substring(0,refName.indexOf("/"));
+		
+		//System.out.println("Branch Name "+branchName);
+		RemoteConfig rc;
+		try {
+			rc = new RemoteConfig(config,
+					remoteName);
+			List<URIish> urIs = rc.getURIs();
+			String uri = urIs.get(0).toString();
+			
+			if (type == FROM_BRANCH) {
+				uri = uri.replace("https://github.com/", "")
+						.replace("git@github.com:", "").replace(".git", "");
+				fromBranchName = uri.substring(0, uri.lastIndexOf("/"));
+				fromBranchName += ":" + branchName;
+
+				baseURL = "https://github.com/" + uri + "/compare/";
+			} else {
+				uri = uri.replace("https://github.com/", "").replace(
+						"git@github.com:", "");
+				toBranchName = uri.substring(0, uri.lastIndexOf("/"));
+				toBranchName += ":" + branchName;
+			}
+			
+		} catch (URISyntaxException e1) {
+			e1.printStackTrace();
+		}
+	}
 
 }
