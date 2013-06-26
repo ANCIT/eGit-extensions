@@ -9,6 +9,7 @@
             objectClass="org.eclipse.egit.ui.internal.repository.tree.RefNode">
          <action
                class="org.ancit.github.utils.pr.actions.RaisePullRequestAction"
+               icon="icons/pr.png"
                id="org.ancit.github.utils.pr.actions.RaisePullRequestAction"
                label="Create Pull Request"
                menubarPath="additions">
