@@ -15,6 +15,8 @@ import org.eclipse.swt.layout.GridData;
 public class AuthenticationDialog extends Dialog {
 	private Text txtUsername;
 	private Text txtPassword;
+	private String userName;
+	private String password;
 
 	/**
 	 * Create the dialog.
@@ -74,16 +76,19 @@ public class AuthenticationDialog extends Dialog {
 	@Override
 	protected void okPressed() {
 		// TODO Auto-generated method stub
+		userName = txtUsername.getText();
+		password = txtPassword.getText();
 		super.okPressed();
+		
 	}
 
 	public String getUsername() {
 		// TODO Auto-generated method stub
-		return txtUsername.getText();
+		return userName;
 	}
 	public String getPasword() {
 		// TODO Auto-generated method stub
-		return txtPassword.getText();
+		return password;
 	}
 	
 	
