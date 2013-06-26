@@ -6,6 +6,7 @@ import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.WizardDialog;
+import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
@@ -14,7 +15,7 @@ import org.eclipse.ui.IWorkbenchPart;
 
 public class RaisePullRequestAction implements IObjectActionDelegate {
 
-	private Repository myRepository;
+	private RefNode refNode;
 
 	public RaisePullRequestAction() {
 		// TODO Auto-generated constructor stub
@@ -22,7 +23,7 @@ public class RaisePullRequestAction implements IObjectActionDelegate {
 
 	@Override
 	public void run(IAction action) {
-		PullRequestWizard wizard = new PullRequestWizard(myRepository);
+		PullRequestWizard wizard = new PullRequestWizard(refNode);
 		WizardDialog wDialog = new WizardDialog(Display.getDefault().getActiveShell(), wizard){
 			@Override
 			protected void configureShell(Shell newShell) {
@@ -39,8 +40,14 @@ public class RaisePullRequestAction implements IObjectActionDelegate {
 		IStructuredSelection sSelection = (IStructuredSelection)selection;
 		Object firstElement = sSelection.getFirstElement();
 		if (firstElement instanceof RefNode) {
-			myRepository = ((RefNode) firstElement).getRepository();
+			this.refNode=(RefNode) firstElement;
 			
+			String branchSelected=refNode.getObject().getName();
+			if(!branchSelected.startsWith("refs/remotes/"))
+				action.setEnabled(true);
+			else
+				action.setEnabled(false);
+
 		}
 
 	}
