@@ -2,9 +2,20 @@ package org.ancit.github.utils.pr.wizards;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.List;
 
+import org.ancit.github.utils.pr.dialog.AuthenticationDialog;
+import org.eclipse.egit.github.core.PullRequest;
+import org.eclipse.egit.github.core.PullRequestMarker;
+import org.eclipse.egit.github.core.RepositoryId;
+import org.eclipse.egit.github.core.client.GitHubClient;
+import org.eclipse.egit.github.core.service.PullRequestService;
 import org.eclipse.egit.ui.internal.repository.tree.RefNode;
+import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
+import org.eclipse.equinox.security.storage.StorageException;
+import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -26,6 +37,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
@@ -39,6 +51,8 @@ public class PullRequestWizardPage extends WizardPage {
 	private RefNode refNode;
 	private int FROM_BRANCH = 1;
 	private int TO_BRANCH = 2;
+	private String repositoryName;
+	private Browser browser;
 
 	
 	/**
@@ -81,7 +95,7 @@ public class PullRequestWizardPage extends WizardPage {
 			
 			btnGeneratePullRequest.setText("Pull");
 		
-			final Browser browser = new Browser(container, SWT.NONE);
+			browser = new Browser(container, SWT.NONE);
 			browser.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1));
 			browser.setUrl("https://github.com/login");
 			
@@ -120,13 +134,15 @@ public class PullRequestWizardPage extends WizardPage {
 					getBranchConfiguration(fromBranch,FROM_BRANCH);
 					browser.setUrl(createURL());
 					setMessage(null);
+					
+					generatePullRequest();
 				}
 			}
 		});
 		
 		setControl(container);
 	}
-	
+
 	private String createURL() {
 		String url = baseURL + toBranchName +"..."+fromBranchName;
 		return url;
@@ -153,6 +169,7 @@ public class PullRequestWizardPage extends WizardPage {
 				fromBranchName = uri.substring(0, uri.lastIndexOf("/"));
 				fromBranchName += ":" + branchName;
 
+				repositoryName=uri.split("/")[1];
 				baseURL = "https://github.com/" + uri + "/compare/";
 			} else {
 				uri = uri.replace("https://github.com/", "").replace(
@@ -164,6 +181,81 @@ public class PullRequestWizardPage extends WizardPage {
 		} catch (URISyntaxException e1) {
 			e1.printStackTrace();
 		}
+	}
+	
+	
+	
+
+
+	protected void generatePullRequest() {
+		// TODO Auto-generated method stub
+		try {
+			GitHubClient client = new GitHubClient();
+			configure(client);
+			
+			PullRequestService prService = new PullRequestService(client);
+			
+			PullRequest request = new PullRequest();
+			request.setBody("A fix");
+			request.setTitle("This is a fix");
+			PullRequestMarker headMarker = new PullRequestMarker();
+			headMarker.setRef(fromBranchName);
+			headMarker.setLabel(fromBranchName);
+			request.setHead(headMarker);
+			
+			
+			
+			headMarker = new PullRequestMarker();
+			String[] toList = toBranchName.split(":");
+			headMarker.setRef(toList[1]);
+			headMarker.setLabel(toList[1]);
+			
+			request.setBase(headMarker);
+			RepositoryId repo = new RepositoryId(toList[0], repositoryName);
+			
+			PullRequest newPullRequest = prService.createPullRequest(repo, request);
+			System.out.println(newPullRequest.getHtmlUrl());
+			setErrorMessage(null);
+			setMessage("Pull request created Successfully..!");
+			browser.setUrl(newPullRequest.getHtmlUrl());
+			
+		} catch (IOException e) {
+			setErrorMessage(e.getMessage());
+		}
+
+		
+	}
+	
+	
+	/**
+	 * Create client for url
+	 *
+	 * @param url
+	 * @return client
+	 * @throws IOException
+	 */
+	protected GitHubClient createClient() throws IOException {
+		GitHubClient client = null;
+			client = new GitHubClient();
+		return configure(client);
+	}
+	
+	/**
+	 * Configure client
+	 *
+	 * @param client
+	 * @return specified client
+	 */
+	protected GitHubClient configure(GitHubClient client) {
+		AuthenticationDialog dialog = new AuthenticationDialog(Display
+				.getDefault().getActiveShell());
+
+		if (IDialogConstants.OK_ID == dialog.open()) {
+			String user = dialog.getUsername();
+			String password = dialog.getPasword();
+			client.setCredentials(user, password);
+		}
+		return client;
 	}
 
 }
