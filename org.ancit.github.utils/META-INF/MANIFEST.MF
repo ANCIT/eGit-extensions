@@ -10,7 +10,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.egit.github.core,
  org.eclipse.egit.ui,
  org.eclipse.jgit,
- org.eclipse.zest.core;bundle-version="1.5.0",
- org.eclipse.zest.layouts;bundle-version="1.1.0"
+ org.eclipse.zest.core,
+ org.eclipse.zest.layouts
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ActivationPolicy: lazy
