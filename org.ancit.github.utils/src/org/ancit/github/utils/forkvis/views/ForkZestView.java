@@ -22,6 +22,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.ISelectionListener;
+import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.zest.core.viewers.AbstractZoomableViewer;
@@ -54,15 +55,15 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 
 	private LayoutAlgorithm setLayout() {
 		LayoutAlgorithm layout;
-//		 layout = new
-//		 SpringLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
-//		layout = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
-//		 layout = new
-//		 GridLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
-//		 layout = new
-//		 HorizontalTreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
-		 layout = new
-		 RadialLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
+		// layout = new
+		// SpringLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
+		// layout = new
+		// TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
+		// layout = new
+		// GridLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
+		// layout = new
+		// HorizontalTreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
+		layout = new RadialLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
 		return layout;
 
 	}
@@ -89,78 +90,93 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 
 	@Override
 	public void selectionChanged(IWorkbenchPart part, ISelection selection) {
-		
 
-		// TODO Auto-generated method stub
-		IStructuredSelection sSelection = (IStructuredSelection) selection;
-		Object firstElement = sSelection.getFirstElement();
-		if (firstElement instanceof RefNode) {
-			RefNode selectedRefNode = (RefNode) firstElement;
+		if (selection instanceof IStructuredSelection) {
+			IStructuredSelection sSelection = (IStructuredSelection) selection;
+			Object firstElement = sSelection.getFirstElement();
+			if (firstElement instanceof RefNode) {
+				RefNode selectedRefNode = (RefNode) firstElement;
 
-			@SuppressWarnings("restriction")
-			String branchSelected = selectedRefNode.getObject().getName();
-			if (!branchSelected.startsWith("refs/remotes/")) {
-				this.refNode = selectedRefNode;
-				branchSelected = branchSelected.substring(branchSelected
-						.lastIndexOf("/") + 1);
+				@SuppressWarnings("restriction")
+				String branchSelected = selectedRefNode.getObject().getName();
+				if (!branchSelected.startsWith("refs/remotes/")) {
+					this.refNode = selectedRefNode;
+					branchSelected = branchSelected.substring(branchSelected
+							.lastIndexOf("/") + 1);
 
-				String remote = refNode
-						.getRepository()
-						.getConfig()
-						.getString(ConfigConstants.CONFIG_BRANCH_SECTION,
-								branchSelected,
-								ConfigConstants.CONFIG_KEY_REMOTE);
+					String remote = refNode
+							.getRepository()
+							.getConfig()
+							.getString(ConfigConstants.CONFIG_BRANCH_SECTION,
+									branchSelected,
+									ConfigConstants.CONFIG_KEY_REMOTE);
 
-				RemoteConfig rc;
-				try {
-					rc = new RemoteConfig(refNode.getRepository().getConfig(),
-							remote);
-					List<URIish> urIs = rc.getURIs();
-					String uri = urIs.get(0).toString();
+					RemoteConfig rc;
+					try {
+						rc = new RemoteConfig(refNode.getRepository()
+								.getConfig(), remote);
+						List<URIish> urIs = rc.getURIs();
+						String uri = urIs.get(0).toString();
 
-					uri = uri.replace("https://github.com/", "")
-							.replace("git@github.com:", "").replace(".git", "");
-					String repoOwner = uri.substring(0, uri.lastIndexOf("/"));
-					String repositoryName = uri.split("/")[1];
+						uri = uri.replace("https://github.com/", "")
+								.replace("git@github.com:", "")
+								.replace(".git", "");
+						String repoOwner = uri.substring(0,
+								uri.lastIndexOf("/"));
+						String repositoryName = uri.split("/")[1];
 
-					//To be used when we provide support for Private Repositories
-//					GitHubClient client = GithubService.createClient(null);
-					
-					RepositoryService service = new RepositoryService();
-					Repository currentRepo = service.getRepository(repoOwner,
-							repositoryName);
+						// To be used when we provide support for Private
+						// Repositories
+						 GitHubClient client =
+						 GithubService.createClient(null);
 
-					RepositoryId repo;
-					if (currentRepo.isFork()) {
-						Repository parentRepo = currentRepo.getParent();
+						RepositoryService service = new RepositoryService(client);
+						Repository currentRepo = service.getRepository(
+								repoOwner, repositoryName);
 
-						repo = new RepositoryId(parentRepo.getOwner()
-								.getLogin(), parentRepo.getName());
-					} else {
-						repo = new RepositoryId(currentRepo.getOwner()
-								.getLogin(), currentRepo.getName());
+						RepositoryId repo;
+						if (currentRepo.isFork()) {
+							Repository parentRepo = currentRepo.getParent();
+
+							repo = new RepositoryId(parentRepo.getOwner()
+									.getLogin(), parentRepo.getName());
+						} else {
+							repo = new RepositoryId(currentRepo.getOwner()
+									.getLogin(), currentRepo.getName());
+						}
+
+						List<Repository> forks = service.getForks(repo);
+
+						ForkVisualisationModel model = new ForkVisualisationModel(
+								repo, forks);
+						viewer.setInput(model.getNodes());
+						LayoutAlgorithm layout = setLayout();
+						viewer.setLayoutAlgorithm(layout, true);
+						viewer.applyLayout();
+
+					} catch (URISyntaxException e1) {
+						e1.printStackTrace();
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						MessageDialog
+								.openWarning(
+										Display.getDefault().getActiveShell(),
+										"Forbidden Access - Private Github Repositories",
+										"You are attempting to access a Private Repository in Github. This option is not available at the moment.");
 					}
-
-					List<Repository> forks = service.getForks(repo);
-					
-					ForkVisualisationModel model = new ForkVisualisationModel(repo, forks);
-					viewer.setInput(model.getNodes());
-					LayoutAlgorithm layout = setLayout();
-					viewer.setLayoutAlgorithm(layout, true);
-					viewer.applyLayout();
-
-				} catch (URISyntaxException e1) {
-					e1.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					MessageDialog.openWarning(Display.getDefault().getActiveShell(), "Forbidden Access - Private Github Repositories", "You are attempting to access a Private Repository in Github. This option is not available at the moment.");
+				} else {
+					this.refNode = null;
 				}
-			} else {
-				this.refNode = null;
 			}
-
 		}
 
+	}
+	
+	@Override
+	public void dispose() {
+		 ISelectionService s = getSite().getWorkbenchWindow().getSelectionService();
+	     s.removeSelectionListener(this);
+	     super.dispose();
 	}
 }
