@@ -12,5 +12,5 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.jgit,
  org.eclipse.zest.core,
  org.eclipse.zest.layouts
-Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ActivationPolicy: lazy
