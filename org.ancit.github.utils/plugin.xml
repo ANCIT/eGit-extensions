@@ -3,17 +3,17 @@
 <plugin>
    <extension
          point="org.eclipse.ui.views">
-      <view
-            category="org.ancit.github.utils.mainCat"
-            class="org.ancit.github.utils.views.ForkView"
-            id="org.ancit.github.utils.views.ForkView"
-            name="Fork Visualizer"
-            restorable="true">
-      </view>
       <category
             id="org.ancit.github.utils.mainCat"
             name="GitHub Utils">
       </category>
+      <view
+            category="org.ancit.github.utils.mainCat"
+            class="org.ancit.github.utils.forkvis.views.ForkZestView"
+            id="org.ancit.github.utils.forkvis.views.ForkZestView"
+            name="Fork Zest Visualizer"
+            restorable="true">
+      </view>
    </extension>
 
 </plugin>
