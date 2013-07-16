@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.ui.views">
+      <view
+            category="org.ancit.github.utils.mainCat"
+            class="org.ancit.github.utils.views.ForkView"
+            id="org.ancit.github.utils.views.ForkView"
+            name="Fork Visualizer"
+            restorable="true">
+      </view>
+      <category
+            id="org.ancit.github.utils.mainCat"
+            name="GitHub Utils">
+      </category>
+   </extension>
+
+</plugin>
