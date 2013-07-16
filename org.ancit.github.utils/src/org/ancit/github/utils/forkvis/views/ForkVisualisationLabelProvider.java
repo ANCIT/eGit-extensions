@@ -60,9 +60,9 @@ public class ForkVisualisationLabelProvider extends LabelProvider implements IEn
 											.indexOf("?") + 1)
 							+ "s=32";
 					BufferedImage imageIO = ImageIO.read(new URL(imageURL));
-					ImageIO.write(imageIO, "png", new File(System.getProperty("user.dir")+"\\gravatar.png"));
+					ImageIO.write(imageIO, "png", new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"gravatar.png"));
 					Image image = new Image(Display.getDefault(),
-							System.getProperty("user.dir")+"\\gravatar.png");
+							System.getProperty("user.dir")+System.getProperty("file.separator")+"gravatar.png");
 					return image;
 				}
 			}
