@@ -32,9 +32,6 @@ public class GithubService {
 	 * @return specified client
 	 */
 	private static GitHubClient configure(GitHubClient client) {
-		String user = "subramanyamcs";
-		String password = "l0g1n2git";
-		client.setCredentials(user, password);
 		client.setUserAgent("github");
 		return client;
 	}

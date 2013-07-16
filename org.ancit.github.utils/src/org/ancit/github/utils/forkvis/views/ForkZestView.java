@@ -11,6 +11,7 @@ import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.egit.ui.internal.repository.tree.RefNode;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jgit.lib.ConfigConstants;
@@ -18,6 +19,7 @@ import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.IWorkbenchPart;
@@ -28,6 +30,9 @@ import org.eclipse.zest.core.viewers.IZoomableWorkbenchPart;
 import org.eclipse.zest.core.viewers.ZoomContributionViewItem;
 import org.eclipse.zest.layouts.LayoutAlgorithm;
 import org.eclipse.zest.layouts.LayoutStyles;
+import org.eclipse.zest.layouts.algorithms.GridLayoutAlgorithm;
+import org.eclipse.zest.layouts.algorithms.HorizontalTreeLayoutAlgorithm;
+import org.eclipse.zest.layouts.algorithms.RadialLayoutAlgorithm;
 import org.eclipse.zest.layouts.algorithms.SpringLayoutAlgorithm;
 import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm;
 
@@ -49,15 +54,15 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 
 	private LayoutAlgorithm setLayout() {
 		LayoutAlgorithm layout;
-		 layout = new
-		 SpringLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
+//		 layout = new
+//		 SpringLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
 //		layout = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
-		// layout = new
-		// GridLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
-		// layout = new
-		// HorizontalTreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
-		// layout = new
-		// RadialLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
+//		 layout = new
+//		 GridLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
+//		 layout = new
+//		 HorizontalTreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
+		 layout = new
+		 RadialLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING);
 		return layout;
 
 	}
@@ -118,8 +123,10 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 					String repoOwner = uri.substring(0, uri.lastIndexOf("/"));
 					String repositoryName = uri.split("/")[1];
 
-					GitHubClient client = GithubService.createClient(null);
-					RepositoryService service = new RepositoryService(client);
+					//To be used when we provide support for Private Repositories
+//					GitHubClient client = GithubService.createClient(null);
+					
+					RepositoryService service = new RepositoryService();
 					Repository currentRepo = service.getRepository(repoOwner,
 							repositoryName);
 
@@ -147,6 +154,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+					MessageDialog.openWarning(Display.getDefault().getActiveShell(), "Forbidden Access - Private Github Repositories", "You are attempting to access a Private Repository in Github. This option is not available at the moment.");
 				}
 			} else {
 				this.refNode = null;
