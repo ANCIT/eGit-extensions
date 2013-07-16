@@ -10,6 +10,7 @@
       <view
             category="org.ancit.github.utils.mainCat"
             class="org.ancit.github.utils.forkvis.views.ForkZestView"
+            icon="icons/forkView.png"
             id="org.ancit.github.utils.forkvis.views.ForkZestView"
             name="Fork Zest Visualizer"
             restorable="true">

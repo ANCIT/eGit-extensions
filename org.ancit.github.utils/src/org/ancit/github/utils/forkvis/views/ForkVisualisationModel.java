@@ -22,7 +22,7 @@ public class ForkVisualisationModel {
     nodes.add(parentNode);
     
     for (Repository repository : forks) {
-    	 ForkNode node = new ForkNode(repository.getOwner().getLogin(), repository.getOwner().getLogin()+"/"+repository.getName(), repository);
+    	 ForkNode node = new ForkNode(repository.getOwner().getLogin(), repository.getOwner().getLogin(), repository);
     	 nodes.add(node);
     	 ForkConnection connect = new ForkConnection("Connection "+parentNode.getName()+":"+node.getName(), repository.getOwner().getLogin()+"/"+repository.getName(), parentNode,
     			 node);
