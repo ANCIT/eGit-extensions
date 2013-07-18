@@ -9,11 +9,15 @@ import java.net.URL;
 
 import javax.imageio.ImageIO;
 
+import org.ancit.github.utils.Activator;
 import org.ancit.github.utils.forkvis.model.ForkConnection;
 import org.ancit.github.utils.forkvis.model.ForkNode;
 import org.eclipse.draw2d.IFigure;
 import org.eclipse.egit.github.core.Repository;
 import org.eclipse.egit.github.core.RepositoryId;
+import org.eclipse.egit.github.core.User;
+import org.eclipse.egit.github.core.service.UserService;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
@@ -64,6 +68,9 @@ public class ForkVisualisationLabelProvider extends LabelProvider implements IEn
 					Image image = new Image(Display.getDefault(),
 							System.getProperty("user.dir")+System.getProperty("file.separator")+"gravatar.png");
 					return image;
+				}else{
+					ImageDescriptor imageDesc = Activator.imageDescriptorFromPlugin(Activator.PLUGIN_ID, "icons/repo1.png");
+					return imageDesc.createImage();
 				}
 			}
 		} catch (FileNotFoundException e) {
@@ -110,7 +117,7 @@ public class ForkVisualisationLabelProvider extends LabelProvider implements IEn
 			ForkNode forkNode = (ForkNode) entity;
 			Object domainObject = forkNode.getDomainObject();
 			if (domainObject instanceof RepositoryId) {
-				return Display.getDefault().getSystemColor(SWT.COLOR_YELLOW);
+				return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
 				
 			}
 		}
@@ -120,12 +127,20 @@ public class ForkVisualisationLabelProvider extends LabelProvider implements IEn
 	@Override
 	public Color getForegroundColour(Object entity) {
 		// TODO Auto-generated method stub
+		if (entity instanceof ForkNode) {
+			ForkNode forkNode = (ForkNode) entity;
+			Object domainObject = forkNode.getDomainObject();
+			if (domainObject instanceof RepositoryId) {
+				return Display.getDefault().getSystemColor(SWT.COLOR_BLACK);
+				
+			}
+		}
 		return null;
 	}
 
 	@Override
 	public IFigure getTooltip(Object entity) {
-		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub		
 		return null;
 	}
 
