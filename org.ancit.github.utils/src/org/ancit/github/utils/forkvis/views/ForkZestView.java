@@ -1,20 +1,32 @@
 package org.ancit.github.utils.forkvis.views;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ancit.github.utils.Activator;
 import org.ancit.github.utils.GithubService;
+import org.ancit.github.utils.forkvis.model.ForkNode;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.egit.github.core.Repository;
 import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
+import org.eclipse.egit.ui.internal.fetch.FetchOperationUI;
 import org.eclipse.egit.ui.internal.repository.tree.RefNode;
+import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.dialogs.ProgressMonitorDialog;
+import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jgit.lib.ConfigConstants;
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.swt.SWT;
@@ -31,11 +43,7 @@ import org.eclipse.zest.core.viewers.IZoomableWorkbenchPart;
 import org.eclipse.zest.core.viewers.ZoomContributionViewItem;
 import org.eclipse.zest.layouts.LayoutAlgorithm;
 import org.eclipse.zest.layouts.LayoutStyles;
-import org.eclipse.zest.layouts.algorithms.GridLayoutAlgorithm;
-import org.eclipse.zest.layouts.algorithms.HorizontalTreeLayoutAlgorithm;
 import org.eclipse.zest.layouts.algorithms.RadialLayoutAlgorithm;
-import org.eclipse.zest.layouts.algorithms.SpringLayoutAlgorithm;
-import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm;
 
 public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 		ISelectionListener {
@@ -81,6 +89,106 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 		IActionBars bars = getViewSite().getActionBars();
 		bars.getMenuManager().add(toolbarZoomContributionViewItem);
 
+		final Action addRemoteAction = new Action("Fetch") {
+			
+			@Override
+			public void run() {
+				
+				ISelection selection = viewer.getSelection();
+				if (selection instanceof IStructuredSelection) {
+					IStructuredSelection nodeSelected= (IStructuredSelection) selection;
+					if (nodeSelected.getFirstElement() instanceof ForkNode) {
+						ForkNode forkNode = (ForkNode) nodeSelected.getFirstElement();
+						Object domainObject = forkNode.getDomainObject();
+						if (domainObject instanceof RepositoryId) {
+							RepositoryId repositoryId = (RepositoryId) domainObject;
+							String url="https://github.com/"+ repositoryId.getOwner()+"/"+repositoryId.getName()+".git";
+							addRemoteAndFetch(url, repositoryId.getOwner());
+							
+						}else
+						{
+							if (domainObject instanceof Repository) {
+								Repository repository = (Repository) domainObject;
+								addRemoteAndFetch(repository.getCloneUrl(), repository.getOwner().getLogin());
+							}
+							
+							
+						}
+						
+					}
+				}
+			}
+		};
+		addRemoteAction.setImageDescriptor(Activator.imageDescriptorFromPlugin(Activator.PLUGIN_ID, "icons/fetch.gif"));
+		addRemoteAction.setEnabled(false);
+		getViewSite().getActionBars().getToolBarManager().add(addRemoteAction);
+		viewer.addSelectionChangedListener(new ISelectionChangedListener() {
+			
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				// TODO Auto-generated method stub
+				if (event.getSelection() instanceof IStructuredSelection) {
+					IStructuredSelection selection = (IStructuredSelection) event.getSelection();
+					if (selection.getFirstElement() instanceof ForkNode) {
+						ForkNode forkNode = (ForkNode) selection.getFirstElement();
+						addRemoteAction.setEnabled(true);
+					}else
+					{
+						addRemoteAction.setEnabled(false);
+
+					}
+					
+				}
+			}
+		});
+	}
+	
+	
+	public void addRemoteAndFetch(String url,String remoteName) {
+
+		try {
+			final RemoteConfig rc = new RemoteConfig(refNode.getRepository().getConfig(), remoteName);
+			StringBuilder defaultRefSpec = new StringBuilder();
+			   defaultRefSpec.append('+');
+			   defaultRefSpec.append(Constants.R_HEADS);
+			   defaultRefSpec.append('*').append(':');
+			   defaultRefSpec.append(Constants.R_REMOTES);
+			   defaultRefSpec.append(rc.getName());
+			   defaultRefSpec.append(RefSpec.WILDCARD_SUFFIX);
+			   rc.addFetchRefSpec(new RefSpec(defaultRefSpec.toString()));
+			   
+			rc.addURI(new URIish(url));
+			rc.update(refNode.getRepository().getConfig());
+			
+			refNode.getRepository().getConfig().save();
+			
+			new ProgressMonitorDialog(ForkZestView.this.getSite().getShell()).run(false, true,
+				       new IRunnableWithProgress() {
+				        public void run(IProgressMonitor monitor)
+				          throws InvocationTargetException,
+				          InterruptedException {
+				         int timeout = 10000;
+				         FetchOperationUI op = new FetchOperationUI(
+				           refNode.getRepository(), rc, timeout, false);
+				         op.start();
+				        }
+				       });
+		} catch (InvocationTargetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	
+		
 	}
 
 	@Override
@@ -167,6 +275,10 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 					}
 				} else {
 					this.refNode = null;
+					viewer.setInput(new ArrayList());
+					LayoutAlgorithm layout = setLayout();
+					viewer.setLayoutAlgorithm(layout, true);
+					viewer.applyLayout();
 				}
 			}
 		}
