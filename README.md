@@ -12,5 +12,11 @@ GitHub becoming the most popular Version of Git, we have a few features lined up
 2.Fork Visualisation
   - Select a Branch in the Github Repositories View and See the Forks of the Selected Repo Graphically and Hierarchially.
 
+3.Add Remote and Fetch from Fork
+  - You can Select a Fork and decide to Add a Remote and Fetch that into your Local Git Repo in just 1 Click.
+  - This feature helps in avoiding 
+    - Copy Pasting SSH or HTTPS URL from Github
+    - Add Remote > Enter Remote Name > Add URI > Add ConfigSpec and finally Fetch.
+
 Features to follow
   - Other GitHub Operations thru GUI.
