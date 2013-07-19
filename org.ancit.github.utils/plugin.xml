@@ -16,5 +16,19 @@
             restorable="true">
       </view>
    </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            class="org.ancit.github.utils.preferences.EGitExtensionPreferencePage"
+            id="org.ancit.github.utils.preferences.EGitExtensionPreferencePage"
+            name="eGit-extensions">
+      </page>
+      <page
+            category="org.ancit.github.utils.preferences.EGitExtensionPreferencePage"
+            class="org.ancit.github.utils.preferences.GitHubExtensionsPreferencePage"
+            id="org.ancit.github.utils.preferences.GitHubExtensionsPreferencePage"
+            name="github-extensions">
+      </page>
+   </extension>
 
 </plugin>
