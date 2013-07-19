@@ -202,7 +202,13 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 		if (selection instanceof IStructuredSelection) {
 			IStructuredSelection sSelection = (IStructuredSelection) selection;
 			Object firstElement = sSelection.getFirstElement();
+			
 			if (firstElement instanceof RefNode) {
+				
+				if(refNode != null && refNode.equals(firstElement)) {
+					return;
+				}
+				
 				RefNode selectedRefNode = (RefNode) firstElement;
 
 				@SuppressWarnings("restriction")
