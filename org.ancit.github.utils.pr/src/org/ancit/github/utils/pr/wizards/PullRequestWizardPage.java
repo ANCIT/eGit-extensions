@@ -11,6 +11,9 @@ import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.PullRequestService;
 import org.eclipse.egit.ui.internal.repository.tree.RefNode;
+import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
+import org.eclipse.equinox.security.storage.StorageException;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -20,7 +23,6 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
-import org.eclipse.jgit.transport.CredentialItem.Username;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.swt.SWT;
@@ -63,7 +65,7 @@ public class PullRequestWizardPage extends WizardPage {
 		super("wizardPage");
 		setTitle("Pull Request Creation");
 		setDescription("Select Branch to Raise Pull Request.");
-		setMessage("You should be logged in to work on Private Repositories.", MessageDialog.INFORMATION);
+		
 		this.refNode=refNode;
 		this.myRepository = refNode.getRepository();
 	}
@@ -145,6 +147,8 @@ public class PullRequestWizardPage extends WizardPage {
 			//System.out.println(remote+"/"+merge);
 			toBranch.setText(toBranch.getItem(0));
 			fromBranch.setText(remote+"/"+merge);
+			
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -163,6 +167,11 @@ public class PullRequestWizardPage extends WizardPage {
 				}
 			}
 		});
+		
+		ISecurePreferences preferences = SecurePreferencesFactory.getDefault();
+		if (!preferences.nodeExists("eGitUserInfo")) {
+			setMessage("Use PreferenceStore to configure your GitHub Account to avoid being prompted for UserName and Password everytime.", MessageDialog.INFORMATION);
+		}
 		
 		setControl(container);
 	}
@@ -254,14 +263,29 @@ public class PullRequestWizardPage extends WizardPage {
 	 * @return specified client
 	 */
 	protected GitHubClient configure(GitHubClient client) {
-		AuthenticationDialog dialog = new AuthenticationDialog(Display
-				.getDefault().getActiveShell());
+		
+		ISecurePreferences preferences = SecurePreferencesFactory.getDefault();
+		if (preferences.nodeExists("eGitUserInfo")) {
+			ISecurePreferences node = preferences.node("eGitUserInfo");
+			try {
+				String user = node.get("eGIT_USERNAME", "n/a");
+				String password = node.get("eGIT_PASSWORD", "n/a");
+				client.setCredentials(user, password);
+				client.setUserAgent(user);
+			} catch (StorageException e1) {
+				e1.printStackTrace();
+			}
+		} else {
 
-		if (IDialogConstants.OK_ID == dialog.open()) {
-			user = dialog.getUsername();
-			String password = dialog.getPasword();
-			client.setCredentials(user, password);
-			client.setUserAgent(user);
+			AuthenticationDialog dialog = new AuthenticationDialog(Display
+					.getDefault().getActiveShell());
+
+			if (IDialogConstants.OK_ID == dialog.open()) {
+				user = dialog.getUsername();
+				String password = dialog.getPasword();
+				client.setCredentials(user, password);
+				client.setUserAgent(user);
+			}
 		}
 		return client;
 	}
