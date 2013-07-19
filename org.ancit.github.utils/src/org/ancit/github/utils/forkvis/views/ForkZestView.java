@@ -277,7 +277,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 								.openWarning(
 										Display.getDefault().getActiveShell(),
 										"Forbidden Access - Private Github Repositories",
-										"You are attempting to access a Private Repository in Github. This option is not available at the moment.");
+										"You are attempting to access a Private Repository in Github without Logging In.\nUse Preference Store to Configure your Github Account\nWindows > Preferences > eGit-extensions > github-extensions");
 					}
 				} else {
 					this.refNode = null;
