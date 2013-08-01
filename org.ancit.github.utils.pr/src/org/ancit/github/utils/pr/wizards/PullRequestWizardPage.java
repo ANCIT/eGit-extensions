@@ -2,11 +2,14 @@ package org.ancit.github.utils.pr.wizards;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.ancit.github.utils.pr.dialog.AuthenticationDialog;
 import org.eclipse.egit.github.core.PullRequest;
 import org.eclipse.egit.github.core.PullRequestMarker;
+import org.eclipse.egit.github.core.RepositoryCommit;
 import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.PullRequestService;
@@ -17,6 +20,16 @@ import org.eclipse.equinox.security.storage.StorageException;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
+import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.DoubleClickEvent;
+import org.eclipse.jface.viewers.IDoubleClickListener;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.ITableLabelProvider;
+import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
+import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.Constants;
@@ -27,8 +40,10 @@ import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
+import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -37,11 +52,53 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.TabFolder;
+import org.eclipse.swt.widgets.TabItem;
+import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.swt.widgets.TableColumn;
 
 public class PullRequestWizardPage extends WizardPage {
+	private class TableLabelProvider extends LabelProvider implements ITableLabelProvider {
+		@Override
+		public String getText(Object element) {
+			if (element instanceof PullRequest) {
+				PullRequest pr = (PullRequest) element;
+				return pr.getNumber() + ":" + pr.getTitle();		
+			}
+			return super.getText(element);
+		}
+
+		@Override
+		public Image getColumnImage(Object element, int columnIndex) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public String getColumnText(Object element, int columnIndex) {
+			if (element instanceof RepositoryCommit) {
+				RepositoryCommit commit = (RepositoryCommit) element;
+				switch (columnIndex) {
+				case 0:
+					return commit.getAuthor().getLogin();
+				case 1:
+					return commit.getCommit().getMessage();
+				case 2:
+					return new SimpleDateFormat("EEE, MMM dd, yyyy").format(commit.getCommit().getAuthor().getDate());
+				case 3:
+					return commit.getSha().substring(0, 6);
+
+				default:
+					return "";
+				}
+			}
+			
+			return getText(element);
+		}
+	}
 
 	private Repository myRepository = null;
 	private String baseURL;
@@ -55,6 +112,15 @@ public class PullRequestWizardPage extends WizardPage {
 	private Text txtTitle;
 	private Text txtDescription;
 	private String user;
+	private Table table;
+	private PullRequestService prService;
+	private TableViewer tableViewer;
+	private Combo toBranch;
+	private Combo fromBranch;
+	private Button btnGeneratePullRequest;
+	private Table commitTable;
+	private RepositoryId repo;
+	private TableViewer commitViewer;
 
 	
 	/**
@@ -68,6 +134,12 @@ public class PullRequestWizardPage extends WizardPage {
 		
 		this.refNode=refNode;
 		this.myRepository = refNode.getRepository();
+		
+		GitHubClient client = new GitHubClient();
+		configure(client);
+		
+		prService = new PullRequestService(client);
+		
 	}
 	
 
@@ -76,7 +148,7 @@ public class PullRequestWizardPage extends WizardPage {
 	 * @param parent
 	 */
 	public void createControl(Composite parent) {
-		
+		this.setPageComplete(false);
 		
 		Composite container = new Composite(parent, SWT.NULL);
 		container.setLayout(new GridLayout(4, false));
@@ -100,7 +172,7 @@ public class PullRequestWizardPage extends WizardPage {
 			txtDescription = new Text(grpPullRequestInfo, SWT.BORDER);
 			txtDescription.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
-			final Combo toBranch = new Combo(container, SWT.READ_ONLY);
+			toBranch = new Combo(container, SWT.READ_ONLY);
 			toBranch.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 			GridDataFactory.fillDefaults().grab(true, false).applyTo(toBranch);
 		
@@ -109,20 +181,12 @@ public class PullRequestWizardPage extends WizardPage {
 			label.setText("<-");
 			label.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_BACK));
 		
-			final Combo fromBranch = new Combo(container, SWT.READ_ONLY);
+			fromBranch = new Combo(container, SWT.READ_ONLY);
 			fromBranch.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 			
-			Button btnGeneratePullRequest = new Button(container, SWT.NONE);
+			btnGeneratePullRequest = new Button(container, SWT.NONE);
 			
 			btnGeneratePullRequest.setText("Create");
-			new Label(container, SWT.NONE);
-			new Label(container, SWT.NONE);
-			new Label(container, SWT.NONE);
-			new Label(container, SWT.NONE);
-		
-			browser = new Browser(container, SWT.NONE);
-			browser.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1));
-			browser.setUrl("https://github.com/login");
 			
 		try {
 			for (Ref ref : myRepository.getRefDatabase()
@@ -148,6 +212,14 @@ public class PullRequestWizardPage extends WizardPage {
 			toBranch.setText(toBranch.getItem(0));
 			fromBranch.setText(remote+"/"+merge);
 			
+			toBranch.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					List<PullRequest> pullRequest = getPullRequests();
+					tableViewer.setInput(pullRequest);
+				}
+			});
+			
 			
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -164,6 +236,7 @@ public class PullRequestWizardPage extends WizardPage {
 					generatePullRequest();
 				} else {
 					setErrorMessage("Enter Valid Information in Title/Description.");
+					setPageComplete(true);
 				}
 			}
 		});
@@ -174,7 +247,146 @@ public class PullRequestWizardPage extends WizardPage {
 		}
 		
 		setControl(container);
+		
+		SashForm sashForm = new SashForm(container, SWT.NONE);
+		sashForm.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1));
+		
+		tableViewer = new TableViewer(sashForm, SWT.BORDER | SWT.FULL_SELECTION);
+		table = tableViewer.getTable();
+		table.setHeaderVisible(true);
+		table.setLinesVisible(true);
+		
+		TableColumn tblclmnPullRequests = new TableColumn(table, SWT.NONE);
+		tblclmnPullRequests.setWidth(225);
+		tblclmnPullRequests.setText("Pull Requests");
+		tableViewer.setLabelProvider(new TableLabelProvider());
+		tableViewer.setContentProvider(ArrayContentProvider.getInstance());
+		tableViewer.addSelectionChangedListener(new ISelectionChangedListener() {
+			
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				ISelection selection = event.getSelection();
+				if(selection.isEmpty()) {
+					return;
+				}
+				
+				if (selection instanceof IStructuredSelection) {
+					IStructuredSelection sSelection = (IStructuredSelection) selection;
+					Object firstElement = sSelection.getFirstElement();
+					if (firstElement instanceof PullRequest) {
+						PullRequest pr = (PullRequest) firstElement;
+						
+						try {
+							List<RepositoryCommit> commits = prService.getCommits(repo, pr.getNumber());
+							commitViewer.setInput(commits);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						
+					}
+					
+				}
+			}
+		});
+		
+		final TabFolder tabFolder = new TabFolder(sashForm, SWT.NONE);
+		
+		TabItem tbtmCommits = new TabItem(tabFolder, SWT.NONE);
+		tbtmCommits.setText("Commits");
+		
+		commitViewer = new TableViewer(tabFolder, SWT.BORDER | SWT.FULL_SELECTION);
+		commitTable = commitViewer.getTable();
+		commitTable.setLinesVisible(true);
+		commitTable.setHeaderVisible(true);
+		commitViewer.setContentProvider(ArrayContentProvider.getInstance());
+		commitViewer.setLabelProvider(new TableLabelProvider());
+		
+		
+		
+		tbtmCommits.setControl(commitTable);
+		
+		TableColumn tblclmnUser = new TableColumn(commitTable, SWT.NONE);
+		tblclmnUser.setWidth(100);
+		tblclmnUser.setText("User");
+		
+		TableColumn tblclmnDescription = new TableColumn(commitTable, SWT.NONE);
+		tblclmnDescription.setWidth(500);
+		tblclmnDescription.setText("Description");
+		
+		TableColumn tblclmnDate = new TableColumn(commitTable, SWT.NONE);
+		tblclmnDate.setWidth(150);
+		tblclmnDate.setText("Date");
+		
+		TableColumn tblclmnCommitId = new TableColumn(commitTable, SWT.NONE);
+		tblclmnCommitId.setWidth(100);
+		tblclmnCommitId.setText("Commit ID");
+		
+		TabItem tbtmFilesChanged = new TabItem(tabFolder, SWT.NONE);
+		tbtmFilesChanged.setText("Files Changed");
+		
+		final TabItem tbtmBrowser = new TabItem(tabFolder, SWT.NONE);
+		tbtmBrowser.setText("Browser");
+		
+			browser = new Browser(tabFolder, SWT.NONE);
+			tbtmBrowser.setControl(browser);
+			browser.setUrl("https://github.com/login");
+			sashForm.setWeights(new int[] {114, 447});
+			
+			commitViewer.addDoubleClickListener(new IDoubleClickListener() {
+				
+				@Override
+				public void doubleClick(DoubleClickEvent event) {
+					IStructuredSelection sSelection = (IStructuredSelection)event.getSelection();
+					Object firstElement = sSelection.getFirstElement();
+					if (firstElement instanceof RepositoryCommit) {
+						RepositoryCommit commit = (RepositoryCommit) firstElement;
+						browser.setUrl("https://github.com/"+commit.getAuthor().getLogin()+"/"+repositoryName+"/commit/"+commit.getSha());
+						tabFolder.setSelection(tbtmBrowser);
+					}
+					
+				}
+			});
 	}
+
+	protected List<PullRequest> getPullRequests() {
+		getBranchConfiguration(toBranch, TO_BRANCH);
+		getBranchConfiguration(fromBranch, FROM_BRANCH);
+		String[] toList = toBranchName.split(":");
+		repo = new RepositoryId(toList[0], repositoryName);
+		List<PullRequest> allPullRequests = new ArrayList<PullRequest>();
+		try {
+			allPullRequests = prService.getPullRequests(repo, "open");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		List<PullRequest> brPullRequests = new ArrayList<PullRequest>();
+		boolean pullRequestExists =false;
+		String errorMessage = "";
+		for (PullRequest pullRequest : allPullRequests) {
+			if(pullRequest.getHead().getRef().equals(toList[1])) {
+				brPullRequests.add(pullRequest);
+				if (pullRequest.getHead().getUser().getLogin().equals(prService.getClient().getUser())) {
+					pullRequestExists = true;
+					errorMessage=pullRequest.getBase().getLabel()+" & "+pullRequest.getHead().getLabel();
+				}
+			}
+		}
+		
+		if(pullRequestExists) {
+			btnGeneratePullRequest.setEnabled(false);
+			setErrorMessage("Pull Request already Exists btw "+errorMessage);
+		}else {
+			btnGeneratePullRequest.setEnabled(true);
+			setErrorMessage(null);
+		}
+		
+		
+		return brPullRequests;
+	}
+
 
 	private void getBranchConfiguration(final Combo branch, int type) {
 		StoredConfig config = myRepository.getConfig();
@@ -212,11 +424,7 @@ public class PullRequestWizardPage extends WizardPage {
 	
 	protected void generatePullRequest() {
 		// TODO Auto-generated method stub
-		try {
-			GitHubClient client = new GitHubClient();
-			configure(client);
-			
-			PullRequestService prService = new PullRequestService(client);
+		try {			
 			
 			PullRequest request = new PullRequest();
 			request.setBody(txtDescription.getText());
@@ -237,15 +445,17 @@ public class PullRequestWizardPage extends WizardPage {
 			RepositoryId repo = new RepositoryId(toList[0], repositoryName);
 			
 			PullRequest newPullRequest = prService.createPullRequest(repo, request);
-			System.out.println(newPullRequest.getHtmlUrl());
 			setErrorMessage(null);
 			setMessage("Pull request created Successfully..!");
 			browser.setUrl(newPullRequest.getHtmlUrl());
+			
+			setPageComplete(true);
 			
 		} catch (IOException e) {
 			setErrorMessage(e.getMessage());
 			e.printStackTrace();
 			browser.setUrl("https://github.com/"+toBranchName.split(":")[0]+"/"+repositoryName+"/pulls");
+			setPageComplete(false);
 		}
 
 		
@@ -270,6 +480,10 @@ public class PullRequestWizardPage extends WizardPage {
 			try {
 				String user = node.get("eGIT_USERNAME", "n/a");
 				String password = node.get("eGIT_PASSWORD", "n/a");
+				if(user.isEmpty() || password.isEmpty()) {
+					setErrorMessage("UserName or Password is not configured properly in Preferences");
+					getUserAuthentication(client);
+				}
 				client.setCredentials(user, password);
 				client.setUserAgent(user);
 			} catch (StorageException e1) {
@@ -277,17 +491,22 @@ public class PullRequestWizardPage extends WizardPage {
 			}
 		} else {
 
-			AuthenticationDialog dialog = new AuthenticationDialog(Display
-					.getDefault().getActiveShell());
-
-			if (IDialogConstants.OK_ID == dialog.open()) {
-				user = dialog.getUsername();
-				String password = dialog.getPasword();
-				client.setCredentials(user, password);
-				client.setUserAgent(user);
-			}
+			getUserAuthentication(client);
 		}
 		return client;
+	}
+
+
+	private void getUserAuthentication(GitHubClient client) {
+		AuthenticationDialog dialog = new AuthenticationDialog(Display
+				.getDefault().getActiveShell());
+
+		if (IDialogConstants.OK_ID == dialog.open()) {
+			user = dialog.getUsername();
+			String password = dialog.getPasword();
+			client.setCredentials(user, password);
+			client.setUserAgent(user);
+		}
 	}
 
 }
