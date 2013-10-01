@@ -1,5 +1,6 @@
 package org.ancit.github.utils.forkvis.views;
 
+import java.awt.DisplayMode;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
@@ -205,7 +206,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 			
 			if (firstElement instanceof RefNode) {
 				
-				if(refNode != null && refNode.equals(firstElement)) {
+				if(refNode != null && (refNode.equals(firstElement) || refNode.getRepository().equals(((RefNode)firstElement).getRepository()))) {
 					return;
 				}
 				
@@ -230,6 +231,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 						rc = new RemoteConfig(refNode.getRepository()
 								.getConfig(), remote);
 						List<URIish> urIs = rc.getURIs();
+						if(urIs.size() > 0) {
 						String uri = urIs.get(0).toString();
 
 						uri = uri.replace("https://github.com/", "")
@@ -261,12 +263,21 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 
 						List<Repository> forks = service.getForks(repo);
 
-						ForkVisualisationModel model = new ForkVisualisationModel(
+						final ForkVisualisationModel model = new ForkVisualisationModel(
 								repo, forks);
-						viewer.setInput(model.getNodes());
-						LayoutAlgorithm layout = setLayout();
-						viewer.setLayoutAlgorithm(layout, true);
-						viewer.applyLayout();
+						Display.getDefault().asyncExec(new Runnable() {
+							public void run() {
+								viewer.setInput(model.getNodes());
+								LayoutAlgorithm layout = setLayout();
+								viewer.setLayoutAlgorithm(layout, true);
+								viewer.applyLayout();
+							}
+						});
+						} else {
+							MessageDialog
+							.openWarning(
+									Display.getDefault().getActiveShell(),"Error - Remote Configuration","Remote URL for the Selected Branch does not exists. \n Right Click > Configure Branch > Select Valid Remote");
+						}
 
 					} catch (URISyntaxException e1) {
 						e1.printStackTrace();
@@ -277,7 +288,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 								.openWarning(
 										Display.getDefault().getActiveShell(),
 										"Forbidden Access - Private Github Repositories",
-										"You are attempting to access a Private Repository in Github without Logging In.\nUse Preference Store to Configure your Github Account\nWindows > Preferences > eGit-extensions > github-extensions");
+										"You are attempting to access a Private Repository in Github without Logging In.\nUse Preference Store to Configure your Github Account\nWindows > Preferences > eGit-extensions > github-extensions" + e.getMessage());
 					}
 				} else {
 					this.refNode = null;

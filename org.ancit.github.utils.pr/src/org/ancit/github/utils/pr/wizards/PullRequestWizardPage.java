@@ -234,6 +234,9 @@ public class PullRequestWizardPage extends WizardPage {
 //					browser.setUrl(createURL());
 					setMessage(null);					
 					generatePullRequest();
+					List<PullRequest> pullRequest = getPullRequests();
+					tableViewer.setInput(pullRequest);
+
 				} else {
 					setErrorMessage("Enter Valid Information in Title/Description.");
 					setPageComplete(true);
