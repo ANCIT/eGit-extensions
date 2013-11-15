@@ -15,7 +15,7 @@
     <scm>
             <connection>scm:git:https://github.com/subramanyamcs/eGit-extensions</connection>
             <developerConnection>scm:git:https://github.com/subramanyamcs/eGit-extensions/</developerConnection>
-            <url>https://github.com/subramanyamcs/eGit-extensions/</url>
+            <url>ssh://git@github.com/subramanyamcs/eGit-extensions.git</url>
     </scm>
 
 
