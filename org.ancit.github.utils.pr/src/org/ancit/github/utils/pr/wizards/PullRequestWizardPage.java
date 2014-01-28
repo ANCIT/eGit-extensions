@@ -17,6 +17,10 @@ import org.eclipse.egit.ui.internal.repository.tree.RefNode;
 import org.eclipse.equinox.security.storage.ISecurePreferences;
 import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
 import org.eclipse.equinox.security.storage.StorageException;
+import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.IMenuListener;
+import org.eclipse.jface.action.IMenuManager;
+import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -41,6 +45,9 @@ import org.eclipse.jgit.transport.URIish;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.custom.SashForm;
+import org.eclipse.swt.dnd.Clipboard;
+import org.eclipse.swt.dnd.TextTransfer;
+import org.eclipse.swt.dnd.Transfer;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
@@ -52,13 +59,14 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.TabFolder;
 import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.swt.widgets.TableColumn;
 
 public class PullRequestWizardPage extends WizardPage {
 	private class TableLabelProvider extends LabelProvider implements ITableLabelProvider {
@@ -121,6 +129,7 @@ public class PullRequestWizardPage extends WizardPage {
 	private Table commitTable;
 	private RepositoryId repo;
 	private TableViewer commitViewer;
+	protected Action copyUrlAction;
 
 	
 	/**
@@ -292,6 +301,8 @@ public class PullRequestWizardPage extends WizardPage {
 				}
 			}
 		});
+		makeActions();
+		hookContextMenu();
 		
 		final TabFolder tabFolder = new TabFolder(sashForm, SWT.NONE);
 		
@@ -351,6 +362,42 @@ public class PullRequestWizardPage extends WizardPage {
 				}
 			});
 	}
+
+	private void makeActions() {
+		copyUrlAction = new Action("Copy URL") {
+			@Override
+			public void run() {
+				IStructuredSelection sSelection = ((IStructuredSelection)tableViewer.getSelection());
+				if(!sSelection.isEmpty()) {
+					PullRequest pullRequest = (PullRequest)sSelection.getFirstElement();
+					Clipboard cp = new Clipboard(Display.getDefault());
+					TextTransfer textTransfer = TextTransfer.getInstance();
+			        cp.setContents(new Object[] { pullRequest.getHtmlUrl() },
+			            new Transfer[] { textTransfer });
+				}
+			}
+		};
+		
+	}
+
+
+	private void hookContextMenu() {
+		MenuManager mgr = new MenuManager();
+		mgr.setRemoveAllWhenShown(true);
+		mgr.addMenuListener(new IMenuListener() {
+			
+			@Override
+			public void menuAboutToShow(IMenuManager manager) {
+				manager.add(copyUrlAction);
+			}
+		});
+		
+		Menu menu = mgr.createContextMenu(tableViewer.getTable());
+		tableViewer.getTable().setMenu(menu);
+		
+		
+	}
+
 
 	protected List<PullRequest> getPullRequests() {
 		getBranchConfiguration(toBranch, TO_BRANCH);
@@ -451,6 +498,9 @@ public class PullRequestWizardPage extends WizardPage {
 			setErrorMessage(null);
 			setMessage("Pull request created Successfully..!");
 			browser.setUrl(newPullRequest.getHtmlUrl());
+			
+			List<PullRequest> pullRequest = getPullRequests();
+			tableViewer.setInput(pullRequest);
 			
 			setPageComplete(true);
 			
