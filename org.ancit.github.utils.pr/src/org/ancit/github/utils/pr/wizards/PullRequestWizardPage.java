@@ -198,7 +198,9 @@ public class PullRequestWizardPage extends WizardPage {
 				
 				@Override
 				public void focusLost(FocusEvent e) {
-					txtDescription.setText(txtTitle.getText());					
+					if(txtDescription.getText().trim().isEmpty()){
+					txtDescription.setText(txtTitle.getText());
+					}
 				}
 				
 				@Override

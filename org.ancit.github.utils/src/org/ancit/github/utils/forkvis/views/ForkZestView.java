@@ -276,7 +276,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 						} else {
 							MessageDialog
 							.openWarning(
-									Display.getDefault().getActiveShell(),"Error - Remote Configuration","Remote URL for the Selected Branch does not exists. \n Right Click > Configure Branch > Select Valid Remote");
+									Display.getDefault().getActiveShell(),"Invalid Remote Configuration","Remote URL for the Selected Branch does not exists. \n Right Click > Configure Branch > Select Valid Remote");
 						}
 
 					} catch (URISyntaxException e1) {
