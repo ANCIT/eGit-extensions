@@ -270,13 +270,17 @@ public class PullRequestWizardPage extends WizardPage {
 			merge=merge.substring(merge.lastIndexOf("/")+1);
 			//System.out.println(remote+"/"+merge);
 			toBranch.setText(toBranch.getItem(0));
-			fromBranch.setText(remote+"/"+merge);
-			
+			if(!remote.isEmpty() && !remote.equals(".")){
+				fromBranch.setText(remote+"/"+merge);
+			}else{
+				fromBranch.setText(fromBranch.getItem(0));
+			}
 			toBranch.addSelectionListener(new SelectionAdapter() {
 				@Override
 				public void widgetSelected(SelectionEvent e) {
 					List<PullRequest> pullRequest = getPullRequests(false);
 					tableViewer.setInput(pullRequest);
+					setDescription(null);
 				}
 			});
 			
