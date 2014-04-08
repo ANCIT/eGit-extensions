@@ -1,7 +1,7 @@
-eGit-extensions
+EGit-extensions
 ===============
 
-Useful Add On to eGIT
+Useful Add-on to EGit
 
 GitHub becoming the most popular Version of Git, we have a few features lined up to support GitHub
 
