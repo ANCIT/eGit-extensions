@@ -533,7 +533,7 @@ public class PullRequestWizardPage extends WizardPage {
 			String uri = urIs.get(0).toString();
 			
 			if (type == FROM_BRANCH) {
-				uri = uri.replace("https://github.com/", "")
+				uri = uri.replace("https://github.com/", "").replace("ssh://git@github.com/", "")
 						.replace("git@github.com:", "").replace(".git", "");
 				fromBranchName = uri.substring(0, uri.lastIndexOf("/"));
 				fromBranchName += ":" + branchName;
@@ -542,7 +542,7 @@ public class PullRequestWizardPage extends WizardPage {
 				baseURL = "https://github.com/" + uri + "/compare/";
 			} else {
 				uri = uri.replace("https://github.com/", "").replace(
-						"git@github.com:", "");
+						"git@github.com:", "").replace("ssh://git@github.com/", "");
 				toBranchName = uri.substring(0, uri.lastIndexOf("/"));
 				toBranchName += ":" + branchName;
 			}
