@@ -270,13 +270,17 @@ public class PullRequestWizardPage extends WizardPage {
 			merge=merge.substring(merge.lastIndexOf("/")+1);
 			//System.out.println(remote+"/"+merge);
 			toBranch.setText(toBranch.getItem(0));
-			fromBranch.setText(remote+"/"+merge);
-			
+			if(!remote.isEmpty() && !remote.equals(".")){
+				fromBranch.setText(remote+"/"+merge);
+			}else{
+				fromBranch.setText(fromBranch.getItem(0));
+			}
 			toBranch.addSelectionListener(new SelectionAdapter() {
 				@Override
 				public void widgetSelected(SelectionEvent e) {
 					List<PullRequest> pullRequest = getPullRequests(false);
 					tableViewer.setInput(pullRequest);
+					setDescription(null);
 				}
 			});
 			
@@ -529,7 +533,7 @@ public class PullRequestWizardPage extends WizardPage {
 			String uri = urIs.get(0).toString();
 			
 			if (type == FROM_BRANCH) {
-				uri = uri.replace("https://github.com/", "")
+				uri = uri.replace("https://github.com/", "").replace("ssh://git@github.com/", "")
 						.replace("git@github.com:", "").replace(".git", "");
 				fromBranchName = uri.substring(0, uri.lastIndexOf("/"));
 				fromBranchName += ":" + branchName;
@@ -538,7 +542,7 @@ public class PullRequestWizardPage extends WizardPage {
 				baseURL = "https://github.com/" + uri + "/compare/";
 			} else {
 				uri = uri.replace("https://github.com/", "").replace(
-						"git@github.com:", "");
+						"git@github.com:", "").replace("ssh://git@github.com/", "");
 				toBranchName = uri.substring(0, uri.lastIndexOf("/"));
 				toBranchName += ":" + branchName;
 			}
