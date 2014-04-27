@@ -28,7 +28,6 @@ import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.bindings.keys.KeyStroke;
-import org.eclipse.jface.bindings.keys.ParseException;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.fieldassist.ContentProposalAdapter;
@@ -62,8 +61,6 @@ import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.dnd.Transfer;
-import org.eclipse.swt.events.FocusEvent;
-import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
@@ -150,6 +147,7 @@ public class PullRequestWizardPage extends WizardPage {
 	private TableViewer commitViewer;
 	protected Action copyUrlAction;
 	private CommitService commitService;
+	private RemoteConfig rc;
 
 	
 	/**
@@ -194,7 +192,7 @@ public class PullRequestWizardPage extends WizardPage {
 			
 			txtTitle = new Text(grpPullRequestInfo, SWT.BORDER);
 			txtTitle.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-			txtTitle.addFocusListener(new FocusListener() {
+/*			txtTitle.addFocusListener(new FocusListener() {
 				
 				@Override
 				public void focusLost(FocusEvent e) {
@@ -208,7 +206,7 @@ public class PullRequestWizardPage extends WizardPage {
 					// TODO Auto-generated method stub
 					
 				}
-			});
+			});*/
 			// create the decoration for the text component
 			final ControlDecoration deco = new ControlDecoration(txtTitle, SWT.TOP
 			  | SWT.LEFT);
@@ -266,7 +264,12 @@ public class PullRequestWizardPage extends WizardPage {
 			String merge = myRepository.getConfig().getString(
 				    ConfigConstants.CONFIG_BRANCH_SECTION, branchSelected,
 				    ConfigConstants.CONFIG_KEY_MERGE);
-
+			rc = new RemoteConfig(myRepository.getConfig(),remote);
+			List<URIish> urIs = rc.getURIs();
+			if(!urIs.isEmpty() && !urIs.get(0).toString().contains("github.com")){
+				MessageDialog.openError(getShell(), "Invalid Repo", "Only github repos are supported...!");
+				return;
+			}
 			merge=merge.substring(merge.lastIndexOf("/")+1);
 			//System.out.println(remote+"/"+merge);
 			toBranch.setText(toBranch.getItem(0));
@@ -285,14 +288,14 @@ public class PullRequestWizardPage extends WizardPage {
 			});
 			
 			
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
 		btnGeneratePullRequest.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if(toBranch.getText().length() > 0 && fromBranch.getText().length() > 0 && txtDescription.getText().length() > 0 && txtTitle.getText().length() > 0) {
+				if(toBranch.getText().length() > 0 && fromBranch.getText().length() > 0 && txtTitle.getText().length() > 0) {
 					getBranchConfiguration(toBranch, TO_BRANCH);
 					getBranchConfiguration(fromBranch,FROM_BRANCH);
 //					browser.setUrl(createURL());
@@ -302,7 +305,7 @@ public class PullRequestWizardPage extends WizardPage {
 					tableViewer.setInput(pullRequest);
 
 				} else {
-					setErrorMessage("Enter Valid Information in Title/Description.");
+					setErrorMessage("Enter Valid Information in Title.");
 					setPageComplete(true);
 				}
 			}
@@ -524,8 +527,6 @@ public class PullRequestWizardPage extends WizardPage {
 		String branchName = refName.substring(refName.indexOf("/")+1);
 		String remoteName = refName.substring(0,refName.indexOf("/"));
 		
-		//System.out.println("Branch Name "+branchName);
-		RemoteConfig rc;
 		try {
 			rc = new RemoteConfig(config,
 					remoteName);
