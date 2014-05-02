@@ -192,7 +192,10 @@ public class PullRequestWizardPage extends WizardPage {
 			
 			txtTitle = new Text(grpPullRequestInfo, SWT.BORDER);
 			txtTitle.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-/*			txtTitle.addFocusListener(new FocusListener() {
+/*			
+ * 			Comment this code to enable Auto fill Description Text.
+ * 
+ * txtTitle.addFocusListener(new FocusListener() {
 				
 				@Override
 				public void focusLost(FocusEvent e) {
