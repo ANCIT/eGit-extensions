@@ -267,12 +267,13 @@ public class PullRequestWizardPage extends WizardPage {
 			String merge = myRepository.getConfig().getString(
 				    ConfigConstants.CONFIG_BRANCH_SECTION, branchSelected,
 				    ConfigConstants.CONFIG_KEY_MERGE);
-			rc = new RemoteConfig(myRepository.getConfig(),remote);
+/*			rc = new RemoteConfig(myRepository.getConfig(),remote);
 			List<URIish> urIs = rc.getURIs();
 			if(!urIs.isEmpty() && !urIs.get(0).toString().contains("github.com")){
 				MessageDialog.openError(getShell(), "Invalid Repo", "Only github repos are supported...!");
 				return;
 			}
+*/
 			merge=merge.substring(merge.lastIndexOf("/")+1);
 			//System.out.println(remote+"/"+merge);
 			toBranch.setText(toBranch.getItem(0));
