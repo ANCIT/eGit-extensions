@@ -108,9 +108,10 @@ public class PullRequestWizardPage extends WizardPage {
 		public String getColumnText(Object element, int columnIndex) {
 			if (element instanceof RepositoryCommit) {
 				RepositoryCommit commit = (RepositoryCommit) element;
+				
 				switch (columnIndex) {
 				case 0:
-					return commit.getAuthor().getLogin();
+					return commit.getCommit().getAuthor().getName();
 				case 1:
 					return commit.getCommit().getMessage();
 				case 2:
