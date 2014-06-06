@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.ancit.github.utils.pr.Activator;
 import org.ancit.github.utils.pr.dialog.AuthenticationDialog;
 import org.eclipse.egit.github.core.PullRequest;
 import org.eclipse.egit.github.core.PullRequestMarker;
@@ -270,12 +271,30 @@ public class PullRequestWizardPage extends WizardPage {
 
 			merge=merge.substring(merge.lastIndexOf("/")+1);
 			//System.out.println(remote+"/"+merge);
+			
 			toBranch.setText(toBranch.getItem(0));
+			
+			
+			
+			
 			if(!remote.isEmpty() && !remote.equals(".")){
 				fromBranch.setText(remote+"/"+merge);
 			}else{
 				fromBranch.setText(fromBranch.getItem(0));
 			}
+			
+			getBranchConfiguration(fromBranch, FROM_BRANCH);
+			if(Activator.getDefault().getPreferenceStore().contains(repositoryName)) {
+				String activeBranch = Activator.getDefault().getPreferenceStore().getString(repositoryName);
+				if(activeBranch.isEmpty()) {
+					toBranch.setText(toBranch.getItem(0));
+				} else {
+					toBranch.setText(activeBranch);
+				}
+				} else {
+					toBranch.setText(toBranch.getItem(0));
+				}
+			
 			toBranch.addSelectionListener(new SelectionAdapter() {
 				@Override
 				public void widgetSelected(SelectionEvent e) {
@@ -302,6 +321,8 @@ public class PullRequestWizardPage extends WizardPage {
 					List<PullRequest> pullRequest = getPullRequests(true);
 					tableViewer.setInput(pullRequest);
 
+					Activator.getDefault().getPreferenceStore().setValue(repositoryName, toBranch.getText());
+					
 				} else {
 					setErrorMessage("Enter Valid Information in Title/Description.");
 					setPageComplete(true);
