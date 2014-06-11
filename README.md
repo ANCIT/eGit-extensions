@@ -1,6 +1,23 @@
 EGit-extensions
 ===============
 
+<table style="border: none; width:100%">
+  <tbody>
+    <tr style="border:none;">
+      <td style="vertical-align: middle; padding-top: 10px; border: none;">
+        <a href="http://marketplace.eclipse.org/marketplace-client-intro?mpc_install=945463" title="Drag and drop onto a running Eclipse Main Toolbar to install GitHub Extensions">
+          <img src="http://marketplace.eclipse.org/misc/installbutton.png">
+        </a>
+      </td>
+      <td style="vertical-align: middle; text-align: left; border: none;">
+        ← Drag it to your eclipse workbench to install! (I recommend Main Toolbar as Drop Target)</td>
+    </tr>
+  </tbody>
+</table>
+
+or use `http://www.ancitconsulting.com/gitHub-pr` in Help -> Install New Software ... Dialog.
+
+
 Useful Add-on to EGit
 
 GitHub becoming the most popular Version of Git, we have a few features lined up to support GitHub
@@ -20,3 +37,10 @@ GitHub becoming the most popular Version of Git, we have a few features lined up
 
 Features to follow
   - Other GitHub Operations thru GUI.
+
+#### Contributing
+
+[Pull requests](http://help.github.com/send-pull-requests) are welcome.
+
+<a href="http://with-eclipse.github.io/" target="_blank">
+<img alt="with-Eclipse logo" src="http://with-eclipse.github.io/with-eclipse-0.jpg" /></a>
