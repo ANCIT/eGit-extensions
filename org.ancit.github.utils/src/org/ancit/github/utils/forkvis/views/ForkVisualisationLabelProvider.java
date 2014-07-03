@@ -1,5 +1,7 @@
 package org.ancit.github.utils.forkvis.views;
 
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -23,6 +25,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Scale;
 import org.eclipse.zest.core.viewers.EntityConnectionData;
 import org.eclipse.zest.core.viewers.IEntityStyleProvider;
 
@@ -64,9 +67,25 @@ public class ForkVisualisationLabelProvider extends LabelProvider implements IEn
 											.indexOf("?") + 1)
 							+ "s=32";
 					BufferedImage imageIO = ImageIO.read(new URL(imageURL));
+					
+					if(imageIO.getWidth()>32||imageIO.getHeight()>32){
+						final BufferedImage bufferedImage = new BufferedImage(32, 32, BufferedImage.TYPE_INT_RGB);
+				        final Graphics2D graphics2D = bufferedImage.createGraphics();
+				        graphics2D.setComposite(AlphaComposite.Src);
+				        graphics2D.drawImage(imageIO, 0, 0, 32, 32, null);
+				        graphics2D.dispose();
+				        
+				        imageIO = bufferedImage;
+					}
+					
 					ImageIO.write(imageIO, "png", new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"gravatar.png"));
 					Image image = new Image(Display.getDefault(),
 							System.getProperty("user.dir")+System.getProperty("file.separator")+"gravatar.png");
+					
+					
+					
+					System.out.println(imageIO.getWidth()+" x "+imageIO.getHeight());
+					
 					return image;
 				}else{
 					ImageDescriptor imageDesc = Activator.imageDescriptorFromPlugin(Activator.PLUGIN_ID, "icons/repo1.png");
