@@ -45,8 +45,7 @@ import org.eclipse.zest.layouts.LayoutAlgorithm;
 import org.eclipse.zest.layouts.LayoutStyles;
 import org.eclipse.zest.layouts.algorithms.RadialLayoutAlgorithm;
 
-public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
-		ISelectionListener {
+public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 	public static final String ID = "de.vogella.zest.jface.view";
 	private GraphViewer viewer;
 	private RefNode refNode;
@@ -58,7 +57,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 
 		fillToolBar();
 
-		getSite().getPage().addSelectionListener(this);
+//		getSite().getPage().addSelectionListener(this);
 	}
 
 	private LayoutAlgorithm setLayout() {
@@ -196,8 +195,8 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 		return viewer;
 	}
 
-	@Override
-	public void selectionChanged(IWorkbenchPart part, ISelection selection) {
+
+	public void selectionChanged(ISelection selection) {
 
 		if (selection instanceof IStructuredSelection) {
 			IStructuredSelection sSelection = (IStructuredSelection) selection;
@@ -291,10 +290,4 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart,
 
 	}
 	
-	@Override
-	public void dispose() {
-		 ISelectionService s = getSite().getWorkbenchWindow().getSelectionService();
-	     s.removeSelectionListener(this);
-	     super.dispose();
-	}
 }
