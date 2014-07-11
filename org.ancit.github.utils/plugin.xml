@@ -30,5 +30,20 @@
             name="github-extensions">
       </page>
    </extension>
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="false"
+            id="org.ancit.github.utils.objectContribution2"
+            objectClass="org.eclipse.egit.ui.internal.repository.tree.RefNode">
+         <action
+               class="org.ancit.github.utils.ShowForkVisualization"
+               icon="icons/forkView.png"
+               id="org.ancit.github.utils.ShowForkVisualization"
+               label="Show Fork Visualization"
+               menubarPath="additions">
+         </action>
+      </objectContribution>
+   </extension>
 
 </plugin>
