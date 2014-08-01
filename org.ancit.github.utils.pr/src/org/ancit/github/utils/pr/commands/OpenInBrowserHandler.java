@@ -27,6 +27,7 @@ import org.eclipse.jgit.transport.URIish;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
+import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 import org.eclipse.ui.handlers.HandlerUtil;
 
 public class OpenInBrowserHandler implements IHandler {
@@ -86,7 +87,7 @@ public class OpenInBrowserHandler implements IHandler {
 		try {
 			if (url != null) {
 				IWebBrowser externalBrowser = PlatformUI.getWorkbench()
-						.getBrowserSupport().getExternalBrowser();
+						.getBrowserSupport().createBrowser(IWorkbenchBrowserSupport.AS_EDITOR, url, "egit-extensions", "");
 				// uri = uri.replace(".git", "");
 				externalBrowser.openURL(new URL(url));
 			}
