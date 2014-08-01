@@ -41,8 +41,13 @@
                icon="icons/forkView.png"
                id="org.ancit.github.utils.ShowForkVisualization"
                label="Show Fork Visualization"
-               menubarPath="additions">
+               menubarPath="org.ancit.github.utils.mainmenu/additions">
          </action>
+         <menu
+               id="org.ancit.github.utils.mainmenu"
+               label="egit-extensions"
+               path="additions">
+         </menu>
       </objectContribution>
    </extension>
 
