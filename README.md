@@ -35,6 +35,9 @@ GitHub becoming the most popular Version of Git, we have a few features lined up
     - Copy Pasting SSH or HTTPS URL from Github
     - Add Remote > Enter Remote Name > Add URI > Add ConfigSpec and finally Fetch.
 
+4.Open in Browser
+  - You can select any Resource / Branch / Commit in Package Explorer, Project Explorer or Repositories View and Click on Open in Browser and it would take you the Web Location of that git entity.
+
 Features to follow
   - Other GitHub Operations thru GUI.
 
