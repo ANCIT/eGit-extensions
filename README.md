@@ -43,7 +43,7 @@ Features to follow
 
 #### Contributing
 
-[Pull requests](http://help.github.com/send-pull-requests) are welcome.
+Pull requests are welcome.
 
 <a href="http://with-eclipse.github.io/" target="_blank">
 <img alt="with-Eclipse logo" src="http://with-eclipse.github.io/with-eclipse-0.jpg" /></a>
