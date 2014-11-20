@@ -12,7 +12,7 @@
             class="org.ancit.github.utils.forkvis.views.ForkZestView"
             icon="icons/forkView.png"
             id="org.ancit.github.utils.forkvis.views.ForkZestView"
-            name="Fork Zest Visualizer"
+            name="Fork Visualizer"
             restorable="true">
       </view>
    </extension>
