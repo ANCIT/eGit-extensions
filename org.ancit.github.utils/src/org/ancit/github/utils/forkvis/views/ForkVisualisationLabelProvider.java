@@ -81,11 +81,7 @@ public class ForkVisualisationLabelProvider extends LabelProvider implements IEn
 					ImageIO.write(imageIO, "png", new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"gravatar.png"));
 					Image image = new Image(Display.getDefault(),
 							System.getProperty("user.dir")+System.getProperty("file.separator")+"gravatar.png");
-					
-					
-					
-					System.out.println(imageIO.getWidth()+" x "+imageIO.getHeight());
-					
+										
 					return image;
 				}else{
 					ImageDescriptor imageDesc = Activator.imageDescriptorFromPlugin(Activator.PLUGIN_ID, "icons/repo1.png");

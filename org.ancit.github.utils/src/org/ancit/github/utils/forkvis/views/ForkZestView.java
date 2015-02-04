@@ -1,6 +1,5 @@
 package org.ancit.github.utils.forkvis.views;
 
-import java.awt.DisplayMode;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
@@ -9,15 +8,18 @@ import java.util.List;
 
 import org.ancit.github.utils.Activator;
 import org.ancit.github.utils.GithubService;
+import org.ancit.github.utils.forkvis.dialogs.RepositorySelectionDialog;
 import org.ancit.github.utils.forkvis.model.ForkNode;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.egit.github.core.Repository;
 import org.eclipse.egit.github.core.RepositoryId;
+import org.eclipse.egit.github.core.SearchRepository;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.egit.ui.internal.fetch.FetchOperationUI;
 import org.eclipse.egit.ui.internal.repository.tree.RefNode;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
@@ -31,12 +33,12 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.internal.win32.TVHITTESTINFO;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IActionBars;
-import org.eclipse.ui.ISelectionListener;
-import org.eclipse.ui.ISelectionService;
-import org.eclipse.ui.IWorkbenchPart;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.zest.core.viewers.AbstractZoomableViewer;
 import org.eclipse.zest.core.viewers.GraphViewer;
@@ -45,18 +47,93 @@ import org.eclipse.zest.core.viewers.ZoomContributionViewItem;
 import org.eclipse.zest.layouts.LayoutAlgorithm;
 import org.eclipse.zest.layouts.LayoutStyles;
 import org.eclipse.zest.layouts.algorithms.RadialLayoutAlgorithm;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Text;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 
 public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
-	public static final String ID = "de.vogella.zest.jface.view";
+	public ForkZestView() {
+	}
+	public static final String ID = "org.ancit.github.utils.forkvis.views.ForkZestView";
 	private GraphViewer viewer;
 	private RefNode refNode;
+	private Text txtReponame;
+	private Button btnShowOnlineForks;
+	private Button btnBrowseRepo;
 
 	public void createPartControl(Composite parent) {
+		
+		GridLayout gl_parent = new GridLayout();
+		gl_parent.numColumns = 2;
+		parent.setLayout(gl_parent);
+		
+		btnShowOnlineForks = new Button(parent, SWT.CHECK);
+		btnShowOnlineForks.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+					txtReponame.setEnabled(btnShowOnlineForks.getSelection());
+					btnBrowseRepo.setEnabled(btnShowOnlineForks.getSelection());
+					viewer.setInput(new Object());
+			}
+		});
+		btnShowOnlineForks.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1));
+		btnShowOnlineForks.setText("Show Online Forks");
+		
+		txtReponame = new Text(parent, SWT.BORDER);
+		txtReponame.setText("repoName");
+		txtReponame.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		txtReponame.setEnabled(false);
+		txtReponame.setEditable(false);
+		
+		btnBrowseRepo = new Button(parent, SWT.NONE);
+		btnBrowseRepo.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				final RepositorySelectionDialog dialog = new RepositorySelectionDialog(Display.getDefault().getActiveShell());
+				if(IDialogConstants.OK_ID == dialog.open()) {
+					txtReponame.setText(dialog.getSearchRepo().getOwner()+"/"+dialog.getSearchRepo().getName());
+					
+					try {
+						new ProgressMonitorDialog(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell())
+						.run(false, true, new IRunnableWithProgress() {
+							public void run(IProgressMonitor monitor) {
+
+								monitor.beginTask("Fetch and Display Fork", IProgressMonitor.UNKNOWN);
+								
+								showForks(dialog.getSearchRepo());
+								
+								monitor.done();
+								
+							}
+						});
+					} catch (InvocationTargetException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					} catch (InterruptedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					
+					
+				}
+			}
+		});
+		btnBrowseRepo.setText("...");
+		btnBrowseRepo.setEnabled(false);
+		
 		viewer = new GraphViewer(parent, SWT.BORDER);
+		Control control = viewer.getControl();
+		control.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1));
+		new Label(parent, SWT.NONE);
+		new Label(parent, SWT.NONE);
 		viewer.setContentProvider(new ForkVisualisationContentProvider());
 		viewer.setLabelProvider(new ForkVisualisationLabelProvider());
 
-		fillToolBar();
+//		fillToolBar();
 
 //		getSite().getPage().addSelectionListener(this);
 	}
@@ -195,10 +272,59 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 	public AbstractZoomableViewer getZoomableViewer() {
 		return viewer;
 	}
+	
+	public void showForks(SearchRepository searchRepo) {
+		try {
+			// To be used when we provide support for Private
+			// Repositories
+			 GitHubClient client =
+			 GithubService.createClient(null);
+
+			RepositoryService service = new RepositoryService(client);
+			Repository currentRepo = service.getRepository(
+					searchRepo.getOwner(), searchRepo.getName());
+
+			RepositoryId repo;
+			if (currentRepo.isFork()) {
+				Repository parentRepo = currentRepo.getParent();
+
+				repo = new RepositoryId(parentRepo.getOwner()
+						.getLogin(), parentRepo.getName());
+			} else {
+				repo = new RepositoryId(currentRepo.getOwner()
+						.getLogin(), currentRepo.getName());
+			}
+
+			List<Repository> forks = service.getForks(repo);
+
+			final ForkVisualisationModel model = new ForkVisualisationModel(
+					repo, forks);
+			Display.getDefault().asyncExec(new Runnable() {
+				public void run() {
+					viewer.setInput(model.getNodes());
+					LayoutAlgorithm layout = setLayout();
+					viewer.setLayoutAlgorithm(layout, true);
+					viewer.applyLayout();
+				}
+			});
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		} 
+	
 
 
 	public void selectionChanged(ISelection selection) {
 
+		if(btnShowOnlineForks.getSelection()) {
+			refNode = null;
+		}
+		
+		btnShowOnlineForks.setSelection(false);
+		txtReponame.setText("");
+		btnBrowseRepo.setEnabled(false);
+		
 		if (selection instanceof IStructuredSelection) {
 			IStructuredSelection sSelection = (IStructuredSelection) selection;
 			Object firstElement = sSelection.getFirstElement();
