@@ -133,7 +133,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 		viewer.setContentProvider(new ForkVisualisationContentProvider());
 		viewer.setLabelProvider(new ForkVisualisationLabelProvider());
 
-//		fillToolBar();
+		fillToolBar();
 
 //		getSite().getPage().addSelectionListener(this);
 	}
