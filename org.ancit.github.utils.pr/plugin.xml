@@ -143,9 +143,14 @@
             id="org.ancit.github.utils.pr.refnodedefinition">
          <iterate
                ifEmpty="false">
-            <adapt
-                  type="org.eclipse.egit.ui.internal.repository.tree.RefNode">
-            </adapt>
+            <and>
+               <adapt
+                     type="org.eclipse.egit.ui.internal.repository.tree.RefNode">
+               </adapt>
+               <test
+                     property="org.ancit.github.utils.pr.isGit">
+               </test>
+            </and>
          </iterate>
       </definition>
       <definition
@@ -166,27 +171,41 @@
             id="org.ancit.github.utils.pr.packagefragmentdefinition">
          <iterate
                ifEmpty="false">
-            <adapt
-                  type="org.ancit.github.utils.pr.Object2">
-            </adapt>
+            <and>
+               <adapt
+                     type="org.ancit.github.utils.pr.Object2">
+               </adapt>
+               <test
+                     property="org.ancit.github.utils.pr.isGit">
+               </test></and>
          </iterate>
       </definition>
       <definition
             id="org.ancit.github.utils.pr.packagefragmentrootdefinition">
          <iterate
                ifEmpty="false">
-            <adapt
-                  type="org.eclipse.jdt.core.IPackageFragmentRoot">
-            </adapt>
+            <and>
+               <adapt
+                     type="org.eclipse.jdt.core.IPackageFragmentRoot">
+               </adapt>
+               <test
+                     property="org.ancit.github.utils.pr.isGit">
+               </test>
+            </and>
          </iterate>
       </definition>
       <definition
             id="org.ancit.github.utils.pr.compilationunitdefinition">
          <iterate
                ifEmpty="false">
-            <adapt
-                  type="org.eclipse.jdt.core.ICompilationUnit">
-            </adapt>
+            <and>
+               <adapt
+                     type="org.eclipse.jdt.core.ICompilationUnit">
+               </adapt>
+               <test
+                     property="org.ancit.github.utils.pr.isGit">
+               </test>
+            </and>
          </iterate>
       </definition>
    </extension>
