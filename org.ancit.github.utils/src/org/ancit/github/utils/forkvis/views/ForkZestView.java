@@ -16,6 +16,7 @@ import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.SearchRepository;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
+import org.eclipse.egit.ui.internal.clone.GitCloneWizard;
 import org.eclipse.egit.ui.internal.fetch.FetchOperationUI;
 import org.eclipse.egit.ui.internal.repository.tree.RefNode;
 import org.eclipse.jface.action.Action;
@@ -27,16 +28,23 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
+import org.eclipse.jface.wizard.WizardDialog;
 import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.internal.win32.TVHITTESTINFO;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
@@ -47,13 +55,6 @@ import org.eclipse.zest.core.viewers.ZoomContributionViewItem;
 import org.eclipse.zest.layouts.LayoutAlgorithm;
 import org.eclipse.zest.layouts.LayoutStyles;
 import org.eclipse.zest.layouts.algorithms.RadialLayoutAlgorithm;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Text;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 
 public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 	public ForkZestView() {
@@ -64,7 +65,8 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 	private Text txtReponame;
 	private Button btnShowOnlineForks;
 	private Button btnBrowseRepo;
-
+	private SearchRepository repository;
+	
 	public void createPartControl(Composite parent) {
 		
 		GridLayout gl_parent = new GridLayout();
@@ -96,7 +98,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 				final RepositorySelectionDialog dialog = new RepositorySelectionDialog(Display.getDefault().getActiveShell());
 				if(IDialogConstants.OK_ID == dialog.open()) {
 					txtReponame.setText(dialog.getSearchRepo().getOwner()+"/"+dialog.getSearchRepo().getName());
-					
+					repository = dialog.getSearchRepo();
 					try {
 						new ProgressMonitorDialog(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell())
 						.run(false, true, new IRunnableWithProgress() {
@@ -199,6 +201,48 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 		addRemoteAction.setImageDescriptor(Activator.imageDescriptorFromPlugin(Activator.PLUGIN_ID, "icons/fetch.gif"));
 		addRemoteAction.setEnabled(false);
 		getViewSite().getActionBars().getToolBarManager().add(addRemoteAction);
+		
+		
+		final Action forkAction = new Action("Fork & Clone") {
+			public void run() {
+				GitHubClient client = null;
+				try {
+					client = GithubService.createClient(null);
+					RepositoryService service1 = new RepositoryService(client);
+					Repository forkedRepository = service1
+							.forkRepository(repository);
+					boolean cloneRepo = MessageDialog.openQuestion(Display
+							.getDefault().getActiveShell(), "Fork Successfull",
+							repository.getOwner() + "/" + repository.getName()
+									+ " is successfully forked to "
+									+ forkedRepository.getHtmlUrl()
+									+ " \n\n Do you also want to clone "
+									+ forkedRepository.getOwner().getLogin()
+									+ "/" + forkedRepository.getName() + "?");
+
+					if (cloneRepo == true) {
+						WizardDialog d = new WizardDialog(Display.getDefault()
+								.getActiveShell(), new GitCloneWizard(
+								forkedRepository.getCloneUrl()));
+						d.open();
+					}
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					MessageDialog.openInformation(Display.getDefault()
+							.getActiveShell(), "Fork Failed", e.getMessage());
+
+				}
+
+			};
+		};
+		forkAction.setImageDescriptor(Activator.imageDescriptorFromPlugin(
+				Activator.PLUGIN_ID, "icons/forkView.png"));
+		forkAction.setEnabled(false);
+		getViewSite().getActionBars().getToolBarManager().add(forkAction);
+
+		
+		
 		viewer.addSelectionChangedListener(new ISelectionChangedListener() {
 			
 			@Override
@@ -209,9 +253,11 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 					if (selection.getFirstElement() instanceof ForkNode) {
 						ForkNode forkNode = (ForkNode) selection.getFirstElement();
 						addRemoteAction.setEnabled(true);
+						forkAction.setEnabled(true);
 					}else
 					{
 						addRemoteAction.setEnabled(false);
+						forkAction.setEnabled(false);
 
 					}
 					
