@@ -249,18 +249,18 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 			public void selectionChanged(SelectionChangedEvent event) {
 				// TODO Auto-generated method stub
 				if (event.getSelection() instanceof IStructuredSelection) {
-					IStructuredSelection selection = (IStructuredSelection) event.getSelection();
+					addRemoteAction.setEnabled(false);
+					forkAction.setEnabled(false);
+					IStructuredSelection selection = (IStructuredSelection) event
+							.getSelection();
 					if (selection.getFirstElement() instanceof ForkNode) {
-						ForkNode forkNode = (ForkNode) selection.getFirstElement();
-						addRemoteAction.setEnabled(true);
+						ForkNode forkNode = (ForkNode) selection
+								.getFirstElement();
+						if (!btnShowOnlineForks.getSelection()) {
+							addRemoteAction.setEnabled(true);
+						} 
 						forkAction.setEnabled(true);
-					}else
-					{
-						addRemoteAction.setEnabled(false);
-						forkAction.setEnabled(false);
-
-					}
-					
+					} 
 				}
 			}
 		});
@@ -377,7 +377,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 			
 			if (firstElement instanceof RefNode) {
 				
-				if(refNode != null && (refNode.equals(firstElement) || refNode.getRepository().equals(((RefNode)firstElement).getRepository()))) {
+				if(refNode != null) {
 					return;
 				}
 				
