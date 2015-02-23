@@ -11,8 +11,10 @@ import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerFilter;
@@ -29,12 +31,15 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.events.KeyAdapter;
+import org.eclipse.swt.events.KeyEvent;
 
 public class RepositorySelectionDialog extends Dialog {
 	private Text txtSearchtext;
 	private Table table;
 	private TableViewer tableViewer;
 	private SearchRepository searchRepo;
+	private Button okButton;
 
 	/**
 	 * Create the dialog.
@@ -59,6 +64,16 @@ public class RepositorySelectionDialog extends Dialog {
 		lblRepoSearch.setText("Search String");
 		
 		txtSearchtext = new Text(container, SWT.BORDER);
+		txtSearchtext.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				switch (e.keyCode) {
+				case SWT.CR:
+					performSearch();
+				}
+
+			}
+		});
 		txtSearchtext.setText("");
 		txtSearchtext.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
@@ -66,19 +81,7 @@ public class RepositorySelectionDialog extends Dialog {
 		btnSearch.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				try {
-					GitHubClient client =
-							 GithubService.createClient(null);
-
-							RepositoryService service = new RepositoryService(client);
-							List<SearchRepository> repoList = service.searchRepositories(txtSearchtext.getText());
-							tableViewer.setInput(repoList);
-							
-							
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+				performSearch();
 			}
 		});
 		btnSearch.setText("Search");
@@ -98,7 +101,13 @@ public class RepositorySelectionDialog extends Dialog {
 			}
 		});
 		
-		
+		tableViewer.addSelectionChangedListener(new ISelectionChangedListener() {
+			
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+					okButton.setEnabled(true);
+			}
+		});
 		return container;
 	}
 
@@ -108,8 +117,9 @@ public class RepositorySelectionDialog extends Dialog {
 	 */
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
-		createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL,
+		okButton = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL,
 				true);
+		okButton.setEnabled(false);
 		createButton(parent, IDialogConstants.CANCEL_ID,
 				IDialogConstants.CANCEL_LABEL, false);
 	}
@@ -130,6 +140,22 @@ public class RepositorySelectionDialog extends Dialog {
 	@Override
 	protected Point getInitialSize() {
 		return new Point(450, 300);
+	}
+
+	private void performSearch() {
+		try {
+			GitHubClient client = GithubService.createClient(null);
+
+			RepositoryService service = new RepositoryService(
+					client);
+			List<SearchRepository> repoList = service
+					.searchRepositories(txtSearchtext.getText());
+			tableViewer.setInput(repoList);
+
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 	}
 
 }
