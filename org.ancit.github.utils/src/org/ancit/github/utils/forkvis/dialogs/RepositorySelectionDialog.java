@@ -33,6 +33,8 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.FocusAdapter;
+import org.eclipse.swt.events.FocusEvent;
 
 public class RepositorySelectionDialog extends Dialog {
 	private Text txtSearchtext;
@@ -64,11 +66,18 @@ public class RepositorySelectionDialog extends Dialog {
 		lblRepoSearch.setText("Search String");
 		
 		txtSearchtext = new Text(container, SWT.BORDER);
+		txtSearchtext.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusGained(FocusEvent e) {
+				okButton.setEnabled(false);
+			}
+		});
 		txtSearchtext.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
 				switch (e.keyCode) {
 				case SWT.CR:
+					okButton.setEnabled(false);
 					performSearch();
 				}
 
@@ -105,7 +114,11 @@ public class RepositorySelectionDialog extends Dialog {
 			
 			@Override
 			public void selectionChanged(SelectionChangedEvent event) {
+				if(event.getSelection()!=null ){
 					okButton.setEnabled(true);
+				}else{
+					okButton.setEnabled(false);
+				}
 			}
 		});
 		return container;

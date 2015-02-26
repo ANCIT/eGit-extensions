@@ -2,7 +2,9 @@ package org.ancit.github.utils.forkvis.views;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,10 +13,13 @@ import org.ancit.github.utils.GithubService;
 import org.ancit.github.utils.forkvis.dialogs.RepositorySelectionDialog;
 import org.ancit.github.utils.forkvis.model.ForkNode;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.egit.github.core.Repository;
 import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.SearchRepository;
 import org.eclipse.egit.github.core.client.GitHubClient;
+import org.eclipse.egit.github.core.client.RequestException;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.egit.ui.internal.clone.GitCloneWizard;
 import org.eclipse.egit.ui.internal.fetch.FetchOperationUI;
@@ -24,6 +29,8 @@ import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
+import org.eclipse.jface.viewers.DoubleClickEvent;
+import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -46,8 +53,12 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IActionBars;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.browser.IWebBrowser;
+import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 import org.eclipse.ui.part.ViewPart;
+import org.eclipse.ui.progress.UIJob;
 import org.eclipse.zest.core.viewers.AbstractZoomableViewer;
 import org.eclipse.zest.core.viewers.GraphViewer;
 import org.eclipse.zest.core.viewers.IZoomableWorkbenchPart;
@@ -66,6 +77,8 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 	private Button btnShowOnlineForks;
 	private Button btnBrowseRepo;
 	private SearchRepository repository;
+	private Action addRemoteAction;
+	private Action forkAction;
 	
 	public void createPartControl(Composite parent) {
 		
@@ -80,6 +93,8 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 					txtReponame.setEnabled(btnShowOnlineForks.getSelection());
 					btnBrowseRepo.setEnabled(btnShowOnlineForks.getSelection());
 					viewer.setInput(new Object());
+					addRemoteAction.setEnabled(false);
+					forkAction.setEnabled(false);
 			}
 		});
 		btnShowOnlineForks.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1));
@@ -106,7 +121,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 
 								monitor.beginTask("Fetch and Display Fork", IProgressMonitor.UNKNOWN);
 								
-								showForks(dialog.getSearchRepo());
+								showForks(repository);
 								
 								monitor.done();
 								
@@ -134,6 +149,39 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 		new Label(parent, SWT.NONE);
 		viewer.setContentProvider(new ForkVisualisationContentProvider());
 		viewer.setLabelProvider(new ForkVisualisationLabelProvider());
+		viewer.addDoubleClickListener(new IDoubleClickListener() {
+			
+			@Override
+			public void doubleClick(DoubleClickEvent event) {
+				// TODO Auto-generated method stub
+				ISelection selection = viewer.getSelection();
+				if (event.getSelection() instanceof IStructuredSelection) {
+					IStructuredSelection selection2 = (IStructuredSelection) event
+							.getSelection();
+					ForkNode forkNode = (ForkNode) selection2.getFirstElement();
+					Object domainObject = forkNode.getDomainObject();
+					String url="";
+					if (domainObject instanceof RepositoryId) {
+						RepositoryId repoId = (RepositoryId) domainObject;
+						url = "https://github.com/" + repoId.getOwner() + "/"
+								+ repoId.getName() + ".git";
+					} else if (domainObject instanceof Repository) {
+						Repository repo = (Repository) domainObject;
+						url = repo.getHtmlUrl();
+					}
+
+					try {
+						IWebBrowser browser = PlatformUI.getWorkbench().getBrowserSupport()
+								.createBrowser(IWorkbenchBrowserSupport.AS_EDITOR, url, url, url);
+						browser.openURL(new URL(url));
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+			
+		});
 
 		fillToolBar();
 
@@ -168,7 +216,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 		IActionBars bars = getViewSite().getActionBars();
 		bars.getMenuManager().add(toolbarZoomContributionViewItem);
 
-		final Action addRemoteAction = new Action("Fetch") {
+		addRemoteAction = new Action("Fetch") {
 			
 			@Override
 			public void run() {
@@ -203,34 +251,74 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 		getViewSite().getActionBars().getToolBarManager().add(addRemoteAction);
 		
 		
-		final Action forkAction = new Action("Fork & Clone") {
+		forkAction = new Action("Fork & Clone") {
 			public void run() {
 				GitHubClient client = null;
+				String forkRepo;
+				boolean cloneRepo;
 				try {
 					client = GithubService.createClient(null);
 					RepositoryService service1 = new RepositoryService(client);
-					Repository forkedRepository = service1
-							.forkRepository(repository);
-					boolean cloneRepo = MessageDialog.openQuestion(Display
-							.getDefault().getActiveShell(), "Fork Successfull",
-							repository.getOwner() + "/" + repository.getName()
-									+ " is successfully forked to "
-									+ forkedRepository.getHtmlUrl()
-									+ " \n\n Do you also want to clone "
-									+ forkedRepository.getOwner().getLogin()
-									+ "/" + forkedRepository.getName() + "?");
 
-					if (cloneRepo == true) {
-						WizardDialog d = new WizardDialog(Display.getDefault()
-								.getActiveShell(), new GitCloneWizard(
-								forkedRepository.getCloneUrl()));
+					try {
+						Repository clientRepository = service1.getRepository(
+								client.getUser(), repository.getName());
+						forkRepo=clientRepository.getCloneUrl();
+						cloneRepo = MessageDialog.openQuestion(Display
+								.getDefault().getActiveShell(),
+								" Already Forked!!", repository.getOwner()
+										+ "/"
+										+ repository.getName()
+										+ " is Already Forked"
+										+ " \n\n Do you wish to clone "
+										+ clientRepository.getOwner()
+												.getLogin() + "/"
+										+ clientRepository.getName() + "?");
+
+					} catch (RequestException e) {
+						Repository forkedRepository = service1
+								.forkRepository(repository);
+						forkRepo = forkedRepository.getCloneUrl();
+						cloneRepo = MessageDialog.openQuestion(Display
+								.getDefault().getActiveShell(),
+								"Fork Successfull", repository.getOwner()
+										+ "/"
+										+ repository.getName()
+										+ " is successfully forked to "
+										+ forkedRepository.getHtmlUrl()
+										+ " \n\n Do you also want to clone "
+										+ forkedRepository.getOwner()
+												.getLogin() + "/"
+										+ forkedRepository.getName() + "?");
+						UIJob job = new UIJob("Refresh Forks") {
+
+							@Override
+							public IStatus runInUIThread(
+									IProgressMonitor monitor) {
+								// TODO Auto-generated method stub
+								showForks(repository);
+								return Status.OK_STATUS;
+							}
+						};
+						job.setSystem(true);
+						job.schedule(0);
+					}
+					if (cloneRepo) {
+						WizardDialog d = new WizardDialog(Display
+								.getDefault().getActiveShell(),
+								new GitCloneWizard(forkRepo
+										));
 						d.open();
 					}
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-					MessageDialog.openInformation(Display.getDefault()
-							.getActiveShell(), "Fork Failed", e.getMessage());
+					MessageDialog
+							.openWarning(
+									Display.getDefault().getActiveShell(),
+									"Forbidden Access - Private Github Repositories",
+									"You are attempting to access a Private Repository in Github without Logging In.\nUse Preference Store to Configure your Github Account\nWindows > Preferences > eGit-extensions > github-extensions"
+											+ e.getMessage());
 
 				}
 
@@ -258,8 +346,9 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 								.getFirstElement();
 						if (!btnShowOnlineForks.getSelection()) {
 							addRemoteAction.setEnabled(true);
-						} 
+						} else {
 						forkAction.setEnabled(true);
+						}
 					} 
 				}
 			}
@@ -363,9 +452,9 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 
 	public void selectionChanged(ISelection selection) {
 
-		if(btnShowOnlineForks.getSelection()) {
-			refNode = null;
-		}
+//		if(btnShowOnlineForks.getSelection()) {
+//			refNode = null;
+//		}
 		
 		btnShowOnlineForks.setSelection(false);
 		txtReponame.setText("");
@@ -377,9 +466,9 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 			
 			if (firstElement instanceof RefNode) {
 				
-				if(refNode != null) {
-					return;
-				}
+//				if(refNode != null) {
+//					return;
+//				}
 				
 				RefNode selectedRefNode = (RefNode) firstElement;
 
