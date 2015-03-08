@@ -50,5 +50,23 @@
          </menu>
       </objectContribution>
    </extension>
+   <extension
+         point="org.eclipse.ui.decorators">
+      <decorator
+            adaptable="true"
+            class="org.ancit.github.utils.forkvis.views.ForkNodeLabelDecorator"
+            icon="icons/star.png"
+            id="org.ancit.github.utils.forkvis.views.forknodelabeldecorator"
+            label="ForkNodeLabelDecorator"
+            lightweight="true"
+            location="TOP_LEFT"
+            state="true">
+         <enablement>
+            <objectClass
+                  name="org.ancit.github.utils.forkvis.model.ForkNode">
+            </objectClass>
+         </enablement>
+      </decorator>
+   </extension>
 
 </plugin>

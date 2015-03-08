@@ -1,105 +1,30 @@
 package org.ancit.github.utils.forkvis.views;
 
-import java.awt.AlphaComposite;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.util.List;
 
-import javax.imageio.ImageIO;
-
-import org.ancit.github.utils.Activator;
-import org.ancit.github.utils.forkvis.model.ForkConnection;
 import org.ancit.github.utils.forkvis.model.ForkNode;
+import org.eclipse.draw2d.ColorConstants;
 import org.eclipse.draw2d.IFigure;
+import org.eclipse.draw2d.Label;
 import org.eclipse.egit.github.core.Repository;
 import org.eclipse.egit.github.core.RepositoryId;
-import org.eclipse.egit.github.core.User;
-import org.eclipse.egit.github.core.service.UserService;
-import org.eclipse.jface.resource.ImageDescriptor;
-import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.jface.resource.JFaceResources;
+import org.eclipse.jface.viewers.DecoratingLabelProvider;
+import org.eclipse.jface.viewers.IColorProvider;
+import org.eclipse.jface.viewers.ILabelDecorator;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Scale;
-import org.eclipse.zest.core.viewers.EntityConnectionData;
 import org.eclipse.zest.core.viewers.IEntityStyleProvider;
 
-public class ForkVisualisationLabelProvider extends LabelProvider implements IEntityStyleProvider{
-	@Override
-	public String getText(Object element) {
-		if (element instanceof ForkNode) {
-			ForkNode myNode = (ForkNode) element;
-			return myNode.getName();
-		}
-		// Not called with the IGraphEntityContentProvider
-		if (element instanceof ForkConnection) {
-			ForkConnection myConnection = (ForkConnection) element;
-			return myConnection.getLabel();
-		}
+public class ForkVisualisationLabelProvider extends DecoratingLabelProvider
+		implements IEntityStyleProvider {
 
-		if (element instanceof EntityConnectionData) {
-			EntityConnectionData test = (EntityConnectionData) element;
-			return "";
-		}
-		throw new RuntimeException("Wrong type: "
-				+ element.getClass().toString());
-	}
-
-	@Override
-	public Image getImage(Object element) {
-		try {
-
-			if (element instanceof ForkNode) {
-				Object domainObject = ((ForkNode) element).getDomainObject();
-				if (domainObject instanceof Repository) {
-					Repository repository = (Repository) domainObject;
-					String imageURL = repository
-							.getOwner()
-							.getAvatarUrl()
-							.substring(
-									0,
-									repository.getOwner().getAvatarUrl()
-											.indexOf("?") + 1)
-							+ "s=32";
-					BufferedImage imageIO = ImageIO.read(new URL(imageURL));
-					
-					if(imageIO.getWidth()>32||imageIO.getHeight()>32){
-						final BufferedImage bufferedImage = new BufferedImage(32, 32, BufferedImage.TYPE_INT_RGB);
-				        final Graphics2D graphics2D = bufferedImage.createGraphics();
-				        graphics2D.setComposite(AlphaComposite.Src);
-				        graphics2D.drawImage(imageIO, 0, 0, 32, 32, null);
-				        graphics2D.dispose();
-				        
-				        imageIO = bufferedImage;
-					}
-					
-					ImageIO.write(imageIO, "png", new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"gravatar.png"));
-					Image image = new Image(Display.getDefault(),
-							System.getProperty("user.dir")+System.getProperty("file.separator")+"gravatar.png");
-										
-					return image;
-				}else{
-					ImageDescriptor imageDesc = Activator.imageDescriptorFromPlugin(Activator.PLUGIN_ID, "icons/repo1.png");
-					return imageDesc.createImage();
-				}
-			}
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		return super.getImage(element);
+	public ForkVisualisationLabelProvider(ILabelDecorator decorator) {
+		super(new RealForkVisualisationLabelProvider(), decorator);
+		// TODO Auto-generated constructor stub
 	}
 
 	@Override
@@ -125,37 +50,31 @@ public class ForkVisualisationLabelProvider extends LabelProvider implements IEn
 		// TODO Auto-generated method stub
 		return 0;
 	}
-
 	@Override
-	public Color getBackgroundColour(Object entity) {
-		if (entity instanceof ForkNode) {
-			ForkNode forkNode = (ForkNode) entity;
-			Object domainObject = forkNode.getDomainObject();
-			if (domainObject instanceof RepositoryId) {
-				return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
-				
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public Color getForegroundColour(Object entity) {
+	public IFigure getTooltip(Object entity) {
 		// TODO Auto-generated method stub
 		if (entity instanceof ForkNode) {
 			ForkNode forkNode = (ForkNode) entity;
-			Object domainObject = forkNode.getDomainObject();
-			if (domainObject instanceof RepositoryId) {
-				return Display.getDefault().getSystemColor(SWT.COLOR_BLACK);
-				
+			Object domainObj = forkNode.getDomainObject();
+			Label nodeLabel = new Label();
+			StringBuffer labelStr = new StringBuffer();
+			if (domainObj instanceof RepositoryId) {
+				RepositoryId repoId = (RepositoryId) domainObj;
+				List<ForkNode> noforks = ((ForkNode) entity).getConnectedTo();
+				int n = 0;
+				for (ForkNode noForkElement : noforks) {
+					n++;
+				}
+				labelStr.append("Forks : " + n);
+				nodeLabel.setText(labelStr.toString());
+			} else if (domainObj instanceof Repository) {
+				Repository repo = (Repository) domainObj;
+				labelStr.append("Stars : " + repo.getWatchers()).append(
+						"\nForks:" + repo.getForks());
+				nodeLabel.setText(labelStr.toString());
 			}
+			return nodeLabel;
 		}
-		return null;
-	}
-
-	@Override
-	public IFigure getTooltip(Object entity) {
-		// TODO Auto-generated method stub		
 		return null;
 	}
 
@@ -163,5 +82,45 @@ public class ForkVisualisationLabelProvider extends LabelProvider implements IEn
 	public boolean fisheyeNode(Object entity) {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public Color getForeground(Object element) {
+		// TODO Auto-generated method stub
+		if (element instanceof ForkNode) {
+			ForkNode forkNode = (ForkNode) element;
+			Object domainObject = forkNode.getDomainObject();
+			if (domainObject instanceof RepositoryId) {
+				return Display.getDefault().getSystemColor(SWT.COLOR_BLACK);
+
+			}
+		}
+		return ColorConstants.darkBlue;
+	}
+
+	@Override
+	public Color getBackground(Object element) {
+		// TODO Auto-generated method stub
+		if (element instanceof ForkNode) {
+			ForkNode forkNode = (ForkNode) element;
+			Object domainObject = forkNode.getDomainObject();
+			if (domainObject instanceof RepositoryId) {
+				return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
+
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public Color getBackgroundColour(Object arg0) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Color getForegroundColour(Object arg0) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

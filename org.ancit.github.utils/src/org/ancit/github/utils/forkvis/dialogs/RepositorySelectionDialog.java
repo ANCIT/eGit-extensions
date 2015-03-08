@@ -7,9 +7,11 @@ import org.ancit.github.utils.GithubService;
 import org.eclipse.egit.github.core.Repository;
 import org.eclipse.egit.github.core.SearchRepository;
 import org.eclipse.egit.github.core.client.GitHubClient;
+import org.eclipse.egit.github.core.client.RequestException;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -21,6 +23,7 @@ import org.eclipse.jface.viewers.ViewerFilter;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.SWT;
@@ -75,10 +78,16 @@ public class RepositorySelectionDialog extends Dialog {
 		txtSearchtext.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
+				if(txtSearchtext.getText()!="")
 				switch (e.keyCode) {
 				case SWT.CR:
 					okButton.setEnabled(false);
 					performSearch();
+					break;
+				case  SWT.KEYPAD_CR:
+					okButton.setEnabled(false);
+					performSearch();
+					break;
 				}
 
 			}
@@ -90,6 +99,7 @@ public class RepositorySelectionDialog extends Dialog {
 		btnSearch.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				if(txtSearchtext.getText()!="")
 				performSearch();
 			}
 		});
@@ -159,13 +169,23 @@ public class RepositorySelectionDialog extends Dialog {
 		try {
 			GitHubClient client = GithubService.createClient(null);
 
-			RepositoryService service = new RepositoryService(
-					client);
+			RepositoryService service = new RepositoryService(client);
 			List<SearchRepository> repoList = service
 					.searchRepositories(txtSearchtext.getText());
 			tableViewer.setInput(repoList);
 
-		} catch (IOException e1) {
+		} catch (RequestException e) {
+			RepositoryService service = new RepositoryService();
+			List<SearchRepository> repoList;
+			try {
+				repoList = service.searchRepositories(txtSearchtext.getText());
+				tableViewer.setInput(repoList);
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+		catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
