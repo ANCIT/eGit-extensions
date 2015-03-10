@@ -2,9 +2,9 @@ package org.ancit.github.utils.forkvis.views;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +12,7 @@ import org.ancit.github.utils.Activator;
 import org.ancit.github.utils.GithubService;
 import org.ancit.github.utils.forkvis.dialogs.RepositorySelectionDialog;
 import org.ancit.github.utils.forkvis.model.ForkNode;
+import org.ancit.github.utils.preferences.GitHubExtensionsPreferencePage;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -21,14 +22,24 @@ import org.eclipse.egit.github.core.SearchRepository;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.client.RequestException;
 import org.eclipse.egit.github.core.service.RepositoryService;
+import org.eclipse.egit.github.core.service.WatcherService;
 import org.eclipse.egit.ui.internal.clone.GitCloneWizard;
 import org.eclipse.egit.ui.internal.fetch.FetchOperationUI;
 import org.eclipse.egit.ui.internal.repository.tree.RefNode;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.IMenuListener;
+import org.eclipse.jface.action.IMenuManager;
+import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
+import org.eclipse.jface.preference.IPreferenceNode;
+import org.eclipse.jface.preference.IPreferencePage;
+import org.eclipse.jface.preference.PreferenceDialog;
+import org.eclipse.jface.preference.PreferenceManager;
+import org.eclipse.jface.preference.PreferenceNode;
+import org.eclipse.jface.viewers.DecoratingLabelProvider;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.ISelection;
@@ -53,7 +64,6 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IActionBars;
-import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
@@ -79,6 +89,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 	private SearchRepository repository;
 	private Action addRemoteAction;
 	private Action forkAction;
+	private Action starRepoAction;
 	
 	public void createPartControl(Composite parent) {
 		
@@ -95,6 +106,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 					viewer.setInput(new Object());
 					addRemoteAction.setEnabled(false);
 					forkAction.setEnabled(false);
+					starRepoAction.setEnabled(false);
 			}
 		});
 		btnShowOnlineForks.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1));
@@ -121,7 +133,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 
 								monitor.beginTask("Fetch and Display Fork", IProgressMonitor.UNKNOWN);
 								
-								showForks(repository);
+								showForksView(repository);
 								
 								monitor.done();
 								
@@ -148,39 +160,49 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 		new Label(parent, SWT.NONE);
 		new Label(parent, SWT.NONE);
 		viewer.setContentProvider(new ForkVisualisationContentProvider());
-		viewer.setLabelProvider(new ForkVisualisationLabelProvider());
+		// viewer.setLabelProvider(new ForkVisualisationLabelProvider());
+		viewer.setLabelProvider(new ForkVisualisationLabelProvider(PlatformUI.getWorkbench()
+						.getDecoratorManager().getLabelDecorator()));
 		viewer.addDoubleClickListener(new IDoubleClickListener() {
-			
+
 			@Override
 			public void doubleClick(DoubleClickEvent event) {
 				// TODO Auto-generated method stub
-				ISelection selection = viewer.getSelection();
-				if (event.getSelection() instanceof IStructuredSelection) {
-					IStructuredSelection selection2 = (IStructuredSelection) event
-							.getSelection();
-					ForkNode forkNode = (ForkNode) selection2.getFirstElement();
-					Object domainObject = forkNode.getDomainObject();
-					String url="";
-					if (domainObject instanceof RepositoryId) {
-						RepositoryId repoId = (RepositoryId) domainObject;
-						url = "https://github.com/" + repoId.getOwner() + "/"
-								+ repoId.getName() + ".git";
-					} else if (domainObject instanceof Repository) {
-						Repository repo = (Repository) domainObject;
-						url = repo.getHtmlUrl();
-					}
+				ISelection selection = event.getSelection();
+				if (!selection.isEmpty()) {
+					if (event.getSelection() instanceof IStructuredSelection) {
+						IStructuredSelection selection2 = (IStructuredSelection) event
+								.getSelection();
+						if (selection2.getFirstElement() instanceof ForkNode) {
+							ForkNode forkNode = (ForkNode) selection2
+									.getFirstElement();
+							Object domainObject = forkNode.getDomainObject();
+							String url = "";
+							if (domainObject instanceof RepositoryId) {
+								RepositoryId repoId = (RepositoryId) domainObject;
+								url = "https://github.com/" + repoId.getOwner()
+										+ "/" + repoId.getName() + ".git";
+							} else if (domainObject instanceof Repository) {
+								Repository repo = (Repository) domainObject;
+								url = repo.getHtmlUrl();
+							}
 
-					try {
-						IWebBrowser browser = PlatformUI.getWorkbench().getBrowserSupport()
-								.createBrowser(IWorkbenchBrowserSupport.AS_EDITOR, url, url, url);
-						browser.openURL(new URL(url));
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+							try {
+								IWebBrowser browser = PlatformUI
+										.getWorkbench()
+										.getBrowserSupport()
+										.createBrowser(
+												IWorkbenchBrowserSupport.AS_EDITOR,
+												url, url, url);
+								browser.openURL(new URL(url));
+							} catch (Exception e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
 					}
 				}
 			}
-			
 		});
 
 		fillToolBar();
@@ -250,8 +272,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 		addRemoteAction.setEnabled(false);
 		getViewSite().getActionBars().getToolBarManager().add(addRemoteAction);
 		
-		
-		forkAction = new Action("Fork & Clone") {
+		forkAction = new Action("Fork && Clone") {
 			public void run() {
 				GitHubClient client = null;
 				String forkRepo;
@@ -290,18 +311,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 										+ forkedRepository.getOwner()
 												.getLogin() + "/"
 										+ forkedRepository.getName() + "?");
-						UIJob job = new UIJob("Refresh Forks") {
-
-							@Override
-							public IStatus runInUIThread(
-									IProgressMonitor monitor) {
-								// TODO Auto-generated method stub
-								showForks(repository);
-								return Status.OK_STATUS;
-							}
-						};
-						job.setSystem(true);
-						job.schedule(0);
+						refreshForkView(repository);
 					}
 					if (cloneRepo) {
 						WizardDialog d = new WizardDialog(Display
@@ -310,26 +320,118 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 										));
 						d.open();
 					}
-				} catch (IOException e) {
+				} catch (UnknownHostException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-					MessageDialog
-							.openWarning(
-									Display.getDefault().getActiveShell(),
-									"Forbidden Access - Private Github Repositories",
-									"You are attempting to access a Private Repository in Github without Logging In.\nUse Preference Store to Configure your Github Account\nWindows > Preferences > eGit-extensions > github-extensions"
-											+ e.getMessage());
-
+					MessageDialog.openWarning(Display.getDefault()
+							.getActiveShell(), "UnknownHostException",
+							"UnknownHostException " + e.getMessage()
+									+ "\n Check your Internet connection ");
+				} catch(RequestException e){
+					forbiddenAccess(e); 
+					
+				}catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
-
 			};
 		};
 		forkAction.setImageDescriptor(Activator.imageDescriptorFromPlugin(
 				Activator.PLUGIN_ID, "icons/forkView.png"));
 		forkAction.setEnabled(false);
 		getViewSite().getActionBars().getToolBarManager().add(forkAction);
-
 		
+		starRepoAction = new Action("Star/Unstar") {
+			GitHubClient client = null;
+
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				try {
+					client = GithubService.createClient(null);
+					WatcherService watchService = new WatcherService(client);
+					Repository repo = null;
+					RepositoryId repositoryId;
+					IStructuredSelection selection = (IStructuredSelection) viewer
+							.getSelection();
+					if (selection instanceof IStructuredSelection) {
+						IStructuredSelection selection2 = (IStructuredSelection) selection;
+						ForkNode forkNode = (ForkNode) selection2
+								.getFirstElement();
+						Object domainObject = forkNode.getDomainObject();
+						if (domainObject instanceof RepositoryId) {
+							repositoryId = (RepositoryId) domainObject;
+							if (!(watchService.isWatching(repositoryId))) {
+								watchService.watch(repositoryId);
+								MessageDialog.openInformation(Display
+										.getDefault().getActiveShell(),
+										"Star Repository", "Repository "
+												+ repositoryId.getOwner() + "/"
+												+ repositoryId.getName()
+												+ " is stared by "+client.getUser());
+							} else {
+								watchService.unwatch(repositoryId);
+								MessageDialog.openInformation(Display
+										.getDefault().getActiveShell(),
+										"Unstar Repository", "Repository "
+												+ repositoryId.getOwner() + "/"
+												+ repositoryId.getName()
+												+ " is unstared by "+client.getUser());
+							}refreshForkView(repositoryId);
+						}
+						else if (domainObject instanceof Repository) {
+							 repo= (Repository) domainObject;
+							if (!(watchService.isWatching(repo))) {
+								watchService.watch(repo);
+								MessageDialog.openInformation(Display
+										.getDefault().getActiveShell(),
+										"Star Repository",
+										"Repository " + repo.getOwner().getLogin() + "/"
+												+ repo.getName()
+												+ " is stared by "+client.getUser());
+							} else {
+								watchService.unwatch(repo);
+								MessageDialog.openInformation(Display
+										.getDefault().getActiveShell(),
+										"Unstar Repository",
+										"Repository " + repo.getOwner().getLogin() + "/"
+												+ repo.getName()
+												+ " is unstared by "+client.getUser());
+							}refreshForkView(repo);
+						}
+
+					}
+				} catch(RequestException e){
+					forbiddenAccess(e); 
+					
+				}catch (UnknownHostException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					MessageDialog
+					.openWarning(
+							Display.getDefault().getActiveShell(),
+							"UnknownHostException","UnknownHostException "
+									+e.getMessage() +"\n Check your Internet connection ");
+				}catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+//					MessageDialog
+//							.openWarning(
+//									Display.getDefault().getActiveShell(),
+//									"Forbidden Access ",
+//									e.getMessage()
+//											+ "\nPlease make sure you have configured valid Github credentials in \n Windows > Preferences > eGit-extensions > github-extensions");
+				
+					 
+				}
+			}
+		};
+		starRepoAction.setImageDescriptor(Activator.imageDescriptorFromPlugin(
+				Activator.PLUGIN_ID, "icons/star.png"));
+		starRepoAction.setEnabled(false);
+		getViewSite().getActionBars().getToolBarManager().add(starRepoAction);
+		
+
 		
 		viewer.addSelectionChangedListener(new ISelectionChangedListener() {
 			
@@ -339,6 +441,7 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 				if (event.getSelection() instanceof IStructuredSelection) {
 					addRemoteAction.setEnabled(false);
 					forkAction.setEnabled(false);
+					starRepoAction.setEnabled(false);
 					IStructuredSelection selection = (IStructuredSelection) event
 							.getSelection();
 					if (selection.getFirstElement() instanceof ForkNode) {
@@ -349,11 +452,34 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 						} else {
 						forkAction.setEnabled(true);
 						}
+						starRepoAction.setEnabled(true);
 					} 
 				}
 			}
 		});
+		createTreeViewerMenu();
 	}
+	 private MenuManager createTreeViewerMenu() {
+		  MenuManager menuMgr = new MenuManager(null);
+		  menuMgr.setRemoveAllWhenShown(true);
+		  menuMgr.addMenuListener(new IMenuListener() {
+
+		   public void menuAboutToShow(IMenuManager manager) {
+		    IStructuredSelection sel =(IStructuredSelection) viewer.getSelection();
+		    if (!sel.isEmpty()) {
+		     if (sel.getFirstElement() instanceof ForkNode) {
+		    	 ForkNode forkNode = (ForkNode) sel.getFirstElement();
+		      manager.add(addRemoteAction);
+		      manager.add(forkAction);
+		      manager.add(starRepoAction);
+		     }}
+		   }});
+		  org.eclipse.swt.widgets.Menu menu = menuMgr.createContextMenu(viewer.getControl());
+		  viewer.getControl().setMenu(menu);
+		  return menuMgr;
+
+		 }
+		  
 	
 	
 	public void addRemoteAndFetch(String url,String remoteName) {
@@ -398,9 +524,6 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-	
-		
 	}
 
 	@Override
@@ -408,46 +531,75 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 		return viewer;
 	}
 	
-	public void showForks(SearchRepository searchRepo) {
+public void showForksView(Object obj){
+	 GitHubClient client;
+	try {
+		client = GithubService.createClient(null);
+		RepositoryService service;
+		 service= new RepositoryService(client);
+		
+		displayForkVisilazition(obj, service);
+	} catch (RequestException e) {
+		RepositoryService service;
+		 service= new RepositoryService();
+		
 		try {
-			// To be used when we provide support for Private
-			// Repositories
-			 GitHubClient client =
-			 GithubService.createClient(null);
-
-			RepositoryService service = new RepositoryService(client);
-			Repository currentRepo = service.getRepository(
-					searchRepo.getOwner(), searchRepo.getName());
-
-			RepositoryId repo;
-			if (currentRepo.isFork()) {
-				Repository parentRepo = currentRepo.getParent();
-
-				repo = new RepositoryId(parentRepo.getOwner()
-						.getLogin(), parentRepo.getName());
-			} else {
-				repo = new RepositoryId(currentRepo.getOwner()
-						.getLogin(), currentRepo.getName());
-			}
-
-			List<Repository> forks = service.getForks(repo);
-
-			final ForkVisualisationModel model = new ForkVisualisationModel(
-					repo, forks);
-			Display.getDefault().asyncExec(new Runnable() {
-				public void run() {
-					viewer.setInput(model.getNodes());
-					LayoutAlgorithm layout = setLayout();
-					viewer.setLayoutAlgorithm(layout, true);
-					viewer.applyLayout();
-				}
-			});
-		} catch (IOException e) {
+			displayForkVisilazition(obj, service);
+		} catch (IOException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
 		}
-		} 
-	
+		
+	}
+		catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+
+			
+}
+
+private void displayForkVisilazition(Object obj, RepositoryService service)
+		throws IOException {
+	Repository currentRepo = null;
+
+	if (obj instanceof SearchRepository) {
+		SearchRepository searchRepo = (SearchRepository) obj;
+		currentRepo = service.getRepository(searchRepo);
+		
+	}else if(obj instanceof Repository){
+		Repository searchRepo = (Repository) obj;
+		currentRepo = service.getRepository(searchRepo);
+		
+	}else if(obj instanceof RepositoryId){
+		RepositoryId searchRepo = (RepositoryId) obj;
+		currentRepo = service.getRepository(searchRepo);
+		
+	}
+	RepositoryId repo;
+	if (currentRepo.isFork()) {
+		Repository parentRepo = currentRepo.getParent();
+
+		repo = new RepositoryId(parentRepo.getOwner()
+				.getLogin(), parentRepo.getName());
+	} else {
+		repo = new RepositoryId(currentRepo.getOwner()
+				.getLogin(), currentRepo.getName());
+	}
+
+	List<Repository> forks = service.getForks(repo);
+
+	final ForkVisualisationModel model = new ForkVisualisationModel(
+			repo, forks);
+	Display.getDefault().asyncExec(new Runnable() {
+		public void run() {
+			viewer.setInput(model.getNodes());
+			LayoutAlgorithm layout = setLayout();
+			viewer.setLayoutAlgorithm(layout, true);
+			viewer.applyLayout();
+		}
+	});
+}
 
 
 	public void selectionChanged(ISelection selection) {
@@ -471,7 +623,6 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 //				}
 				
 				RefNode selectedRefNode = (RefNode) firstElement;
-
 				@SuppressWarnings("restriction")
 				String branchSelected = selectedRefNode.getObject().getName();
 				if (!branchSelected.startsWith("refs/remotes/")) {
@@ -541,7 +692,15 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 
 					} catch (URISyntaxException e1) {
 						e1.printStackTrace();
-					} catch (Exception e) {
+					} catch (UnknownHostException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						MessageDialog
+						.openWarning(
+								Display.getDefault().getActiveShell(),
+								"UnknownHostException","UnknownHostException "
+								+e.getMessage() +"\n Check your Internet connection ");
+					}catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 						MessageDialog
@@ -560,6 +719,33 @@ public class ForkZestView extends ViewPart implements IZoomableWorkbenchPart {
 			}
 		}
 
+	}
+	private void refreshForkView(final Object repo) {
+		// TODO Auto-generated method stub
+		UIJob job = new UIJob("Star/Unstar job") {
+			
+			@Override
+			public IStatus runInUIThread(IProgressMonitor monitor) {
+				// TODO Auto-generated method stub
+				showForksView(repo);
+				return Status.OK_STATUS;
+			}
+		};
+		job.setSystem(false);;
+		job.schedule(0);
+	}
+
+	private void forbiddenAccess(IOException e) {
+		IPreferencePage page = new GitHubExtensionsPreferencePage();  
+		 PreferenceManager mgr = new PreferenceManager();  
+		 IPreferenceNode node = new PreferenceNode( "com.cypress.cx3.ui.preferences.CX3ConfigurationPreferencePage", page);  
+		 mgr.addToRoot(node);  
+		 PreferenceDialog dialog = new PreferenceDialog(Display  
+		 .getDefault().getActiveShell(), mgr);  
+		 dialog.create();  
+		 dialog.setMessage("Forbidden Access"); 
+		 dialog.setErrorMessage(e.getMessage()+" Uname/Password is wrong.");
+		 dialog.open();
 	}
 	
 }
