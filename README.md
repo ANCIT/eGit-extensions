@@ -38,6 +38,12 @@ GitHub becoming the most popular Version of Git, we have a few features lined up
 4.Open in Browser
   - You can select any Resource / Branch / Commit in Package Explorer, Project Explorer or Repositories View and Click on Open in Browser and it would take you the Web Location of that git entity.
 
+5.Fork Repositories
+  - You can search for Repositories on Github and Fork them into your Account from withing Eclipse using Fork View.
+  
+6.Star and Unstar Repositories
+  - You can Star and Unstart your Favourie Repositories from Fork Visualisation View.
+
 Features to follow
   - Other GitHub Operations thru GUI.
 
