@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.ancit.github.utils.pr.dialog.BitBucketPRDialog;
 import org.ancit.github.utils.pr.wizards.PullRequestWizard;
+import org.ancit.utils.PreferenceUtil;
 import org.eclipse.egit.ui.internal.repository.tree.RefNode;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -74,7 +75,7 @@ public class RaisePullRequestAction implements IObjectActionDelegate {
 					List<URIish> urIs = rc.getURIs();
 					if (!urIs.isEmpty()) {
 						uri = urIs.get(0).toString();
-						if (uri.contains("github.com")) {
+						if (uri.contains("github.com") || PreferenceUtil.isGitEnterprise()) {
 							action.setEnabled(true);
 							isGitHub = true;
 						} else if (uri.contains("bitbucket.org")) {

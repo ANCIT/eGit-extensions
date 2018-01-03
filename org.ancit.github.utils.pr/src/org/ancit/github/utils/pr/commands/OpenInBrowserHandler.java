@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
+import org.ancit.utils.PreferenceUtil;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.commands.IHandler;
@@ -163,6 +164,14 @@ public class OpenInBrowserHandler implements IHandler {
 					} else if (url.startsWith("bit@bitbucket.org")) {
 						url = url.replace("git@bitbucket.org:",
 								"http://bitbucket.org/").replace(".git", "");
+					} else if(PreferenceUtil.isGitEnterprise()){
+						String host = PreferenceUtil.getGitHost();
+						if(url.startsWith("git@"+host+":")){
+							url = url.replace("git@"+host+":",
+									"https://"+host+"/");
+						}
+						url = url.replace(".git", "");
+						isGitHub = true;
 					}
 				}
 			} catch (Exception e) {
