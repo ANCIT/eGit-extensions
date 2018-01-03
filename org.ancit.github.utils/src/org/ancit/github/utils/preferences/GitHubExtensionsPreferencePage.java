@@ -76,14 +76,14 @@ public class GitHubExtensionsPreferencePage extends PreferencePage implements
 
 		txtHost = new Text(grpLoginDetails, SWT.BORDER);
 		txtHost.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-
+		txtHost.setToolTipText("Enter your Enterprise URL, eg: git.eclipse.org");
 		ISecurePreferences preferences = SecurePreferencesFactory.getDefault();
 		if (preferences.nodeExists("eGitUserInfo")) {
 			ISecurePreferences node = preferences.node("eGitUserInfo");
 			try {
 				txtUserName.setText(node.get("eGIT_USERNAME", "n/a"));
 				txtPassword.setText(node.get("eGIT_PASSWORD", "n/a"));
-				txtHost.setText(node.get("eGIT_HOST", "n/a"));
+				txtHost.setText(node.get("eGIT_HOST", ""));
 			} catch (StorageException e1) {
 				e1.printStackTrace();
 			}
