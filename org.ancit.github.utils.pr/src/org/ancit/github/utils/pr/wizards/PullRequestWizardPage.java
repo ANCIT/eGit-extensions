@@ -571,7 +571,7 @@ public class PullRequestWizardPage extends WizardPage {
 			if (type == FROM_BRANCH) {
 				uri = uri.replace("https://"+gitHubHost+"/", "")
 						 .replace("ssh://"+gitHubHost+"/", "")
-						 .replace("git@"+gitHubHost, "")
+						 .replace("git@"+gitHubHost+":", "")
 						 .replace(".git", "");
 				fromBranchName = uri.substring(0, uri.lastIndexOf("/"));
 				fromBranchName += ":" + branchName;
@@ -581,7 +581,7 @@ public class PullRequestWizardPage extends WizardPage {
 			} else {
 				uri = uri.replace("https://"+gitHubHost+"/", "")
 						 .replace("ssh://"+gitHubHost+"/", "")
-						 .replace("git@"+gitHubHost, "")
+						 .replace("git@"+gitHubHost+":", "")
 						 .replace(".git", "");
 				toBranchName = uri.substring(0, uri.lastIndexOf("/"));
 				toBranchName += ":" + branchName;

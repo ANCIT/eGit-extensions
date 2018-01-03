@@ -36,7 +36,7 @@ public class PreferenceUtil {
 		if (preferences.nodeExists("eGitUserInfo")) {
 			ISecurePreferences node = preferences.node("eGitUserInfo");
 			try {
-				gitHost = node.get("eGIT_HOST", "n/a");
+				gitHost = node.get("eGIT_HOST", "");
 			} catch (StorageException e1) {
 				e1.printStackTrace();
 			}
