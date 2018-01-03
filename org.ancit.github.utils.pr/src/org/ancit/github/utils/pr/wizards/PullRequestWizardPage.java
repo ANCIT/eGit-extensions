@@ -12,11 +12,13 @@ import java.util.Set;
 
 import org.ancit.github.utils.pr.Activator;
 import org.ancit.github.utils.pr.dialog.AuthenticationDialog;
+import org.ancit.utils.PreferenceUtil;
 import org.eclipse.egit.github.core.PullRequest;
 import org.eclipse.egit.github.core.PullRequestMarker;
 import org.eclipse.egit.github.core.RepositoryCommit;
 import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
+import org.eclipse.egit.github.core.client.IGitHubConstants;
 import org.eclipse.egit.github.core.service.CommitService;
 import org.eclipse.egit.github.core.service.PullRequestService;
 import org.eclipse.egit.ui.UIPreferences;
@@ -150,6 +152,7 @@ public class PullRequestWizardPage extends WizardPage {
 	protected Action copyUrlAction;
 	private CommitService commitService;
 	private RemoteConfig rc;
+	private String gitHubHost;
 
 	
 	/**
@@ -163,8 +166,14 @@ public class PullRequestWizardPage extends WizardPage {
 		
 		this.refNode=refNode;
 		this.myRepository = refNode.getRepository();
-		
-		GitHubClient client = new GitHubClient();
+		GitHubClient client;
+		if(PreferenceUtil.isGitEnterprise()){
+			this.gitHubHost = PreferenceUtil.getGitHost();
+			client = new GitHubClient(this.gitHubHost);
+		}else{
+			client = new GitHubClient();
+			this.gitHubHost = IGitHubConstants.HOST_DEFAULT;
+		}
 		configure(client);
 		
 		prService = new PullRequestService(client);
@@ -560,16 +569,20 @@ public class PullRequestWizardPage extends WizardPage {
 			String uri = urIs.get(0).toString();
 			
 			if (type == FROM_BRANCH) {
-				uri = uri.replace("https://github.com/", "").replace("ssh://git@github.com/", "")
-						.replace("git@github.com:", "").replace(".git", "");
+				uri = uri.replace("https://"+gitHubHost+"/", "")
+						 .replace("ssh://"+gitHubHost+"/", "")
+						 .replace("git@"+gitHubHost, "")
+						 .replace(".git", "");
 				fromBranchName = uri.substring(0, uri.lastIndexOf("/"));
 				fromBranchName += ":" + branchName;
 
 				repositoryName=uri.split("/")[1];
-				baseURL = "https://github.com/" + uri + "/compare/";
+				baseURL = "https://"+gitHubHost+"/" + uri + "/compare/";
 			} else {
-				uri = uri.replace("https://github.com/", "").replace(
-						"git@github.com:", "").replace("ssh://git@github.com/", "");
+				uri = uri.replace("https://"+gitHubHost+"/", "")
+						 .replace("ssh://"+gitHubHost+"/", "")
+						 .replace("git@"+gitHubHost, "")
+						 .replace(".git", "");
 				toBranchName = uri.substring(0, uri.lastIndexOf("/"));
 				toBranchName += ":" + branchName;
 			}

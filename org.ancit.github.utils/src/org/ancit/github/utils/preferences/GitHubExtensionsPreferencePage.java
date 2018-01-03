@@ -20,6 +20,7 @@ public class GitHubExtensionsPreferencePage extends PreferencePage implements
 		IWorkbenchPreferencePage {
 	private Text txtUserName;
 	private Text txtPassword;
+	private Text txtHost;
 
 	public GitHubExtensionsPreferencePage() {
 		// TODO Auto-generated constructor stub
@@ -69,12 +70,20 @@ public class GitHubExtensionsPreferencePage extends PreferencePage implements
 		txtPassword = new Text(grpLoginDetails, SWT.BORDER | SWT.PASSWORD);
 		txtPassword.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
+		Label lblHost = new Label(grpLoginDetails, SWT.NONE);
+		lblHost.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+		lblHost.setText("GitHub Enterprise Host");
+
+		txtHost = new Text(grpLoginDetails, SWT.BORDER);
+		txtHost.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+
 		ISecurePreferences preferences = SecurePreferencesFactory.getDefault();
 		if (preferences.nodeExists("eGitUserInfo")) {
 			ISecurePreferences node = preferences.node("eGitUserInfo");
 			try {
 				txtUserName.setText(node.get("eGIT_USERNAME", "n/a"));
 				txtPassword.setText(node.get("eGIT_PASSWORD", "n/a"));
+				txtHost.setText(node.get("eGIT_HOST", "n/a"));
 			} catch (StorageException e1) {
 				e1.printStackTrace();
 			}
@@ -91,6 +100,7 @@ public class GitHubExtensionsPreferencePage extends PreferencePage implements
 	        try {
 	          node.put("eGIT_USERNAME", txtUserName.getText(), false);
 	          node.put("eGIT_PASSWORD", txtPassword.getText(), true);
+	          node.put("eGIT_HOST", txtHost.getText(), false);
 	        } catch (StorageException e1) {
 	          e1.printStackTrace();
 	        }
